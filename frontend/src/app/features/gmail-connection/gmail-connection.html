@@ -1,0 +1,100 @@
+<section class="page">
+  <article class="panel connection">
+    <div class="google">G</div>
+    <div class="copy">
+      <span class="eyebrow">MAILBOX INTEGRATION</span>
+      <h2>Connect your Gmail account</h2>
+      <p>
+        Authorize mailbox access to import candidate messages and keep the inbox
+        updated in real time via Gmail sync and Pub/Sub push notifications.
+      </p>
+
+      <div class="status" [class.ready]="connected()">
+        ● {{ connected() ? 'Connected' : 'Not connected' }}
+      </div>
+
+      @if(connected() && account()) {
+        <div class="account-info">
+          <span class="account-label">Account:</span>
+          <strong>{{ account() }}</strong>
+          @if(lastSyncedAt()) {
+            <span class="sync-time">· Last sync: {{ lastSyncedAt() | date:'short' }}</span>
+          }
+        </div>
+      }
+
+      <div class="actions">
+        <button
+          id="btn-connect-gmail"
+          class="btn primary"
+          [disabled]="busy()"
+          (click)="connect()">
+          {{ connected() ? 'Reconnect Gmail' : 'Connect Gmail' }}
+        </button>
+        @if(connected()) {
+          <button
+            id="btn-disconnect-gmail"
+            class="btn danger"
+            [disabled]="busy()"
+            (click)="promptDisconnect()">
+            Disconnect
+          </button>
+        }
+      </div>
+
+      @if(!configured()) {
+        <div class="notice warn">
+          Gmail OAuth credentials are not set in the backend environment.
+          See <code>docs/setup-google-cloud.md</code> and set
+          <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>.
+        </div>
+      }
+      @if(notice()) {
+        <div class="notice ok">{{ notice() }}</div>
+      }
+      @if(error()) {
+        <div class="notice err">{{ error() }}</div>
+      }
+    </div>
+  </article>
+
+  <div class="panel steps">
+    <h3>How it works</h3>
+    <div class="steps-grid">
+      <div>
+        <b>01</b><strong>Authorize account</strong>
+        <p>Google OAuth grants read-only access to your Gmail inbox.</p>
+      </div>
+      <div>
+        <b>02</b><strong>Initial sync</strong>
+        <p>The backend imports and classifies the latest candidate messages.</p>
+      </div>
+      <div>
+        <b>03</b><strong>Push updates</strong>
+        <p>Pub/Sub signals mailbox changes; the backend uses the History API for incremental sync.</p>
+      </div>
+      <div>
+        <b>04</b><strong>Human review</strong>
+        <p>Every AI-suggested response stays under your control — nothing is sent automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning">
+    <b>Security note:</b> Only <code>gmail.readonly</code> scope is requested.
+    Drafts are stored locally — no email is ever sent by this application.
+    Real-time push delivery requires an HTTPS-accessible backend endpoint
+    (e.g. via ngrok). See <code>docs/setup-google-cloud.md</code> for setup details.
+  </div>
+
+  <app-confirm-modal
+    [isOpen]="confirmDisconnectOpen()"
+    title="Disconnect Gmail Account"
+    message="Are you sure you want to disconnect Gmail? Existing candidate messages will remain in your database, but automatic Gmail sync and push updates will stop."
+    confirmText="Disconnect Gmail"
+    cancelText="Keep Connected"
+    [isDanger]="true"
+    [busy]="busy()"
+    (confirmed)="executeDisconnect()"
+    (cancelled)="cancelDisconnect()" />
+</section>

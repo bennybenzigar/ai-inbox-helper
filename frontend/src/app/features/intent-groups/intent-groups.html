@@ -1,0 +1,27 @@
+<section class="page">
+  <div class="intro">
+    <h2>Organize your inbox by candidate intent</h2>
+    <p>
+      Classification helps you prioritize replies. Low-confidence and unclear
+      messages still need human review.
+    </p>
+  </div>
+  @if(error()){
+  <div class="notice">{{error()}}</div>
+  }
+  <div class="grid">
+    @for(g of groups();track g.intent;let i=$index){
+    <article class="card">
+      <div class="icon" [class]="'icon i'+i">
+        {{['◷','↗','$','▣','⌘','?'][i]}}
+      </div>
+      <div class="count">{{g.count}} <small>messages</small></div>
+      <h3>{{g.intent}}</h3>
+      <p>{{descriptions[g.intent]}}</p>
+      <a [routerLink]="'/inbox'" [queryParams]="{intent:g.intent}"
+        >View messages →</a
+      >
+    </article>
+    }
+  </div>
+</section>

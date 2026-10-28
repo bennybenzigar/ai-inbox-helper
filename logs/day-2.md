@@ -1,0 +1,30 @@
+# Day 2 — Progress Log
+
+- **Goal:** Implement real Gmail OAuth + Pub/Sub integration; verify env keys loaded correctly; add Gmail History API recovery.
+- **Work completed:**
+  - Confirmed all `.env` keys are set: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CLOUD_PROJECT_ID`, `PUBSUB_TOPIC_NAME`, `PUBSUB_SUBSCRIPTION_NAME`, `PUBSUB_PUSH_TOKEN`, `AI_API_KEY`, `AI_MODEL`.
+  - Enhanced `backend/src/services/gmail.service.ts`:
+    - Added `syncGmailHistory()`: uses Gmail History API for incremental sync from stored `historyId` checkpoint.
+    - Added automatic 404/expired-historyId recovery: clears stale checkpoint, falls back to `syncGmailMessages()` for full re-sync.
+    - Added `renewGmailWatchIfNeeded()`: renews the Gmail push watch if expiring within 24 hours.
+    - Added `saveHistoryId()` / `getStoredHistoryId()` helpers.
+    - Watch setup now persists expiration timestamp in `sync_checkpoints`.
+  - Updated `backend/src/routes/webhook.routes.ts`: Pub/Sub webhook now calls `syncGmailHistory()` (History API path) instead of the full-message-list sync.
+  - Created `backend/tests/gmail-history-sync.test.ts`: 7 new unit tests covering no-checkpoint fallback, valid history path, deduplication, 404 recovery, invalid-historyId-message recovery, 503 error propagation, and no-op on empty history.
+  - Updated `security-integration.test.ts`: OAuth route test now adapts to both configured (redirects to Google) and unconfigured (503) credential states.
+- **AI prompts/tools used:**
+  - Antigravity IDE for all file reads, diffs, and writes.
+  - `npm test` output parsed to detect test failures.
+- **Suggestions accepted:**
+  - History API incremental sync preferred over repeated full-list polling (reduces Gmail API quota consumption).
+  - Idempotent deduplication using `gmail_message_id` UNIQUE constraint in SQLite.
+- **Suggestions rejected/corrected:**
+  - Rejected approach of throwing on every non-404 history error; only 404 and historyId-message errors trigger recovery — other errors propagate to caller for proper logging.
+- **Tests run and results:**
+  - Backend: `npm test` — 23/23 passed (7 new history-sync tests + 16 existing).
+  - Backend build: `npm run build` — exit code 0.
+- **Failure or limitation:**
+  - Real Gmail OAuth callback flow cannot be tested locally without HTTPS tunnel (Google requires HTTPS redirect URIs for production). Pub/Sub push delivery similarly requires an HTTPS endpoint. Both paths are code-complete and unit-tested with mocks.
+- **Next steps:**
+  - Configure HTTPS tunnel (ngrok or Cloudflare Tunnel) to test OAuth callback end-to-end.
+  - Trigger a real Pub/Sub push delivery and verify History API processing.

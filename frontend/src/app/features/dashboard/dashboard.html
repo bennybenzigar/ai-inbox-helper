@@ -1,0 +1,163 @@
+<section class="page">
+  <div class="welcome-row">
+    <div>
+      <h2>Dashboard</h2>
+      <p>Real-time overview of your candidate inbox.</p>
+    </div>
+    <div class="actions">
+      <input
+        #dashFileInput
+        type="file"
+        accept=".csv,text/csv"
+        style="display:none"
+        (change)="onCsvFileSelected($event)" />
+      <button class="btn secondary" (click)="refresh()">↻ Refresh</button>
+      <button
+        class="btn primary"
+        (click)="dashFileInput.click()"
+        [disabled]="uploading()"
+      >
+        {{ uploading() ? 'Uploading…' : '↑ Upload Messages CSV' }}
+      </button>
+      <button type="button" class="btn" (click)="downloadExport()">↓ Export CSV</button>
+    </div>
+  </div>
+  @if(message()){
+  <div class="notice">{{message()}}</div>
+  }
+  <div class="stats-grid">
+    <app-stat-card
+      label="Total Messages"
+      [value]="state.stats()?.totalMessages ?? state.messages().length"
+      icon="✉"
+      tone="blue"
+      trend="↑ This week"
+      hint="Candidate messages received"
+    /><app-stat-card
+      label="Pending Drafts"
+      [value]="state.stats()?.pendingDrafts ?? state.pendingDrafts().length"
+      icon="◷"
+      tone="orange"
+      hint="Need your review"
+    /><app-stat-card
+      label="Approved Drafts"
+      [value]="state.stats()?.approvedDrafts ?? 0"
+      icon="✓"
+      tone="green"
+      hint="Reviewed by a human"
+    /><app-stat-card
+      label="Attention Required"
+      [value]="state.stats()?.attentionRequired ?? 0"
+      icon="⚠"
+      tone="red"
+      hint="Unclear intent"
+    />
+  </div>
+  <div class="content-grid">
+    <article class="panel">
+      <div class="panel-heading">
+        <div>
+          <h3>Messages by intent</h3>
+          <p>Understand what candidates are asking about</p>
+        </div>
+        <a routerLink="/intents">View groups →</a>
+      </div>
+      <div class="intent-list">
+        @for(intent of intents;track intent){
+        <div class="intent-row">
+          <span class="dot" [class]="'dot d'+$index"></span
+          ><span>{{intent}}</span>
+          <div class="bar">
+            <i
+              [style.width.%]="(state.stats()?.messagesByIntent?.[intent]??0)/(state.stats()?.totalMessages||1)*100"
+            ></i>
+          </div>
+          <b>{{state.stats()?.messagesByIntent?.[intent]??0}}</b>
+        </div>
+        }
+      </div>
+    </article>
+    <article class="panel">
+      <div class="panel-heading">
+        <div>
+          <h3>Recent activity</h3>
+          <p>Latest inbox actions</p>
+        </div>
+        <span class="muted">Real-time</span>
+      </div>
+      @if(state.stats()?.recentActivity?.length){
+      <div class="activity-list">
+        @for(item of state.stats()!.recentActivity;track item.id){
+        <div class="activity">
+          <span class="activity-icon">✦</span>
+          <div>
+            <b>{{item.message}}</b
+            ><small>{{item.createdAt | date:'short'}}</small>
+          </div>
+        </div>
+        }
+      </div>
+      }@else{
+      <div class="empty-small">
+        No activity yet. Upload a messages CSV to get started.
+      </div>
+      }
+    </article>
+  </div>
+  <article class="panel latest">
+    <div class="panel-heading">
+      <div>
+        <h3>Recent messages</h3>
+        <p>{{state.messages().length}} total · page {{page()}} of {{Math.max(1,Math.ceil(state.messages().length/pager.pageSize()))}}</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn" [href]="exportCsvUrl" download="candidate_messages_export.csv" style="font-size:12px">↓ Export CSV</a>
+        <a routerLink="/inbox">Open inbox →</a>
+      </div>
+    </div>
+    @if(pagedMessages().length){
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Subject</th>
+            <th>Intent</th>
+            <th>Review status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for(m of pagedMessages();track m.id){
+          <tr>
+            <td><b>{{m.senderName}}</b><small>{{m.senderEmail}}</small></td>
+            <td>{{m.subject}}</td>
+            <td><app-intent-badge [intent]="m.intent" /></td>
+            <td>
+              <span class="status" [class]="'status '+m.status"
+                >{{m.status==='none'?'No draft':m.status}}</span
+              >
+            </td>
+            <td><a [routerLink]="['/messages',m.id]">Review →</a></td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-paginator
+      [page]="page()"
+      [total]="state.messages().length"
+      [perPage]="pager.pageSize()"
+      (pageChange)="page.set($event)" />
+
+    }@else{
+    <div class="empty-small">
+      Your inbox is empty.
+      <button class="link-button" (click)="dashFileInput.click()">
+        Upload a messages CSV to get started
+      </button>
+    </div>
+    }
+  </article>
+</section>

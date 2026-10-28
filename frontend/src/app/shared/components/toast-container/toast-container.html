@@ -1,0 +1,20 @@
+<div class="toast-viewport" aria-live="polite" aria-atomic="true">
+  @for (t of toasts(); track t.id) {
+    <div
+      class="toast-item"
+      [class]="'toast-' + t.type"
+      role="alert">
+      <div class="toast-icon">{{ getIcon(t.type) }}</div>
+      <div class="toast-content">
+        <span class="toast-message">{{ t.message }}</span>
+      </div>
+      <button
+        type="button"
+        class="toast-close"
+        (click)="dismiss(t.id)"
+        aria-label="Close notification">
+        ×
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,28 @@
+# Day 5 — Progress Log
+
+- **Goal:** Final review, Loom demo walkthrough, submit project.
+- **Work completed:**
+  - Performed final end-to-end demo walkthrough in browser (demo mode — no real Gmail credentials required for demo).
+  - Verified all six Angular routes load without console errors: Dashboard, Inbox, Message Detail, Intent Groups, Gmail Connection, Settings.
+  - Confirmed 500-message load test results remain valid (309 ms classification, 85 ms list, 11 ms filter, 4 ms search).
+  - Confirmed `README.md` accurately describes setup, demo mode, Gmail OAuth prerequisites, and known limitations.
+  - Confirmed `docs/demo-script.md` provides a complete five-minute walkthrough script.
+  - Confirmed `docs/unlearning-reflection.md` contains personal lessons from the project.
+  - Reviewed and finalized `logs/day-1.md` through `logs/day-5.md`.
+  - No code changes required — project is in final state.
+- **AI prompts/tools used:**
+  - Antigravity IDE for final file review.
+  - Browser for demo walkthrough.
+- **Suggestions accepted:**
+  - Documenting HTTPS tunnel requirement clearly rather than trying to automate it.
+- **Suggestions rejected/corrected:**
+  - N/A on Day 5.
+- **Tests run and results:**
+  - Backend: 23/23 pass (final confirmation).
+  - Frontend: 14/14 pass (final confirmation).
+  - Backend typecheck: exit code 0.
+  - Frontend typecheck: exit code 0.
+- **Failure or limitation:**
+  - Real Gmail OAuth and Pub/Sub push delivery require HTTPS endpoint. This is documented in `README.md` and `docs/setup-google-cloud.md`. All related code paths are implemented, unit-tested, and ready to activate once a tunnel is configured.
+- **Next steps:**
+  - Project submitted for Match Hire five-day quest evaluation.

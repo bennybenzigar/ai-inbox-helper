@@ -1,0 +1,15 @@
+<div class="app-shell">
+  <app-sidebar />
+  <main class="main">
+    <app-header
+      [title]="title"
+      [subtitle]="subtitle"
+      [section]="section"
+    />
+    <div class="content-viewport" id="content-viewport">
+      <router-outlet />
+    </div>
+  </main>
+</div>
+<app-toast-container />
+

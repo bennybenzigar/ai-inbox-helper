@@ -1,0 +1,28 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <a class="brand" routerLink="/dashboard"
+    ><span class="brand-mark">✦</span
+    ><span class="brand-copy"><b>AI Inbox</b><small>Helper</small></span></a
+  >
+  <nav>
+    <a routerLink="/dashboard" routerLinkActive="active"
+      ><span>▦</span><label>Dashboard</label></a
+    ><a routerLink="/inbox" routerLinkActive="active"
+      ><span>✉</span><label>Inbox</label></a
+    ><a routerLink="/outbox" routerLinkActive="active"
+      ><span>📤</span><label>Outbox</label></a
+    ><a routerLink="/intents" routerLinkActive="active"
+      ><span>◈</span><label>Intent Groups</label></a
+    ><a routerLink="/gmail-connection" routerLinkActive="active"
+      ><span>G</span><label>Gmail Connection</label></a
+    ><a routerLink="/attendance" routerLinkActive="active"
+      ><span>⏱</span><label>Attendance</label></a
+    ><a routerLink="/stall-alerter" routerLinkActive="active"
+      ><span>⚠</span><label>Stall Alerter</label></a
+    ><a routerLink="/settings" routerLinkActive="active"
+      ><span>⚙</span><label>Settings</label></a
+    >
+  </nav>
+  <div class="sidebar-foot">
+    <span class="online-dot"></span><span>Live candidate workspace</span>
+  </div>
+</aside>

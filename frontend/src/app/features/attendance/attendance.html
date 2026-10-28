@@ -1,0 +1,165 @@
+<section class="page">
+  <div class="toolbar">
+    <div class="title-area">
+      <h2>Attendance Pattern Checker</h2>
+      <p>Upload a work-hours CSV — AI flags unusual patterns and explains each in one sentence.</p>
+    </div>
+
+    <div class="toolbar-actions">
+      <input
+        #fileInput
+        type="file"
+        accept=".csv,text/csv"
+        style="display:none"
+        (change)="onFileSelected($event)" />
+
+      <button class="btn primary" (click)="fileInput.click()" [disabled]="busy()">
+        ↑ Upload Attendance CSV
+      </button>
+
+      <button type="button" class="btn secondary" (click)="downloadSample()">
+        ↓ Download Template
+      </button>
+
+      @if(analysis()){
+        <button
+          class="btn primary"
+          (click)="exportResultsCsv(false)"
+          [disabled]="!filteredFlags().length"
+          title="Export all flags matching current filter">
+          ↓ Export Filtered ({{filteredFlags().length}})
+        </button>
+        <button
+          class="btn"
+          (click)="exportResultsCsv(true)"
+          [disabled]="!pagedFlags().length"
+          title="Export only flags on page {{page()}}">
+          ↓ Export Page {{page()}}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if(notice()){
+    <div class="notice">{{notice()}}</div>
+  }
+
+  @if(!analysis() && !busy()){
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No data loaded</h3>
+      <p>Upload an attendance CSV to analyze your team's patterns.</p>
+      <button class="btn primary" (click)="fileInput.click()">Upload Attendance CSV</button>
+    </div>
+  }
+
+  @if(busy()){
+    <app-loading-spinner [text]="'Analyzing attendance data...'"></app-loading-spinner>
+  }
+
+  @if(analysis(); as data){
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="label">Total Logs</span>
+        <b>{{data.totalRecords}}</b>
+        <small>{{data.employeesAnalyzed}} employees</small>
+      </div>
+      <div class="stat-card alert">
+        <span class="label">Flagged Records</span>
+        <b>{{data.flaggedCount}}</b>
+        <small>Irregular patterns</small>
+      </div>
+      <div class="stat-card warning">
+        <span class="label">Overtime (>12h)</span>
+        <b>{{data.summary.overtimeFlags}}</b>
+        <small>Potential burnout</small>
+      </div>
+      <div class="stat-card danger">
+        <span class="label">Missing Hours</span>
+        <b>{{data.summary.missingHourFlags}}</b>
+        <small>Unapproved absence</small>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Flagged Pattern Details</h3>
+          <p>{{filteredFlags().length}} flags · page {{page()}} of {{Math.max(1,Math.ceil(filteredFlags().length/pager.pageSize()))}}</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Filter:</label>
+          <select
+            [value]="selectedFilter()"
+            (change)="onFilterChange($any($event.target).value)">
+            <option value="all">All Flags ({{data.flags.length}})</option>
+            <option value="Overtime">Overtime</option>
+            <option value="Missing Hours">Missing Hours</option>
+            <option value="Consecutive Leave">Consecutive Leave</option>
+            <option value="Weekend Work">Weekend Work</option>
+            <option value="Inconsistent Record">Inconsistent Record</option>
+          </select>
+        </div>
+      </div>
+
+      @if(pagedFlags().length){
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Date</th>
+                <th>Pattern Flag</th>
+                <th>Severity</th>
+                <th>Logged Hours / Leave</th>
+                <th>One-Sentence Explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(flag of pagedFlags();track flag.id){
+                <tr>
+                  <td>
+                    <b>{{flag.employeeName}}</b>
+                    <small>{{flag.employeeId}}</small>
+                  </td>
+                  <td>{{flag.date}}</td>
+                  <td>
+                    <span class="flag-badge" [class]="flag.flagType.toLowerCase().replace(' ', '-')">
+                      {{flag.flagType}}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="severity-pill" [class]="flag.severity">
+                      {{flag.severity}}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{{flag.hoursWorked}} hrs</strong>
+                    <small>Leave: {{flag.leaveType}}</small>
+                  </td>
+                  <td class="explanation-cell">
+                    {{flag.explanation}}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <app-paginator
+          [page]="page()"
+          [total]="filteredFlags().length"
+          [perPage]="pager.pageSize()"
+          (pageChange)="page.set($event)" />
+
+      }@else{
+        <div class="empty">
+          <div class="empty-icon">✓</div>
+          <h4>No flags for selected filter</h4>
+          <p>All records match standard working hour guidelines.</p>
+        </div>
+      }
+    </div>
+  }
+</section>

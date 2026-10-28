@@ -1,0 +1,78 @@
+<section class="page">
+  <article class="panel">
+    <h2>Application preferences</h2>
+
+    <div class="form-grid">
+      <label>
+        Rows per page
+        <select
+          [value]="pager.pageSize()"
+          (change)="setPageSize($any($event.target).value)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <small>Applied to Dashboard, Inbox, Attendance, and Stall Alerter tables.</small>
+      </label>
+
+      <label>
+        Theme
+        <select disabled>
+          <option>Light</option>
+          <option>Dark (coming soon)</option>
+        </select>
+      </label>
+    </div>
+
+    @if(notice()){
+    <div class="notice">{{notice()}}</div>
+    }
+
+    <div class="divider"></div>
+
+    <div class="demo-row">
+      <div>
+        <h3>Data management</h3>
+        <p>
+          Clear all imported candidate messages and their AI-generated drafts.
+          Gmail OAuth credentials and sync history are <strong>not</strong> affected.
+        </p>
+      </div>
+      <button class="btn danger" (click)="promptReset()">Clear all messages</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="demo-row">
+      <div>
+        <h3>AI provider</h3>
+        <p>
+          Current provider: <strong>{{aiProvider() || '…'}}</strong> · Mode: <strong>{{mode() || '…'}}</strong>.
+          API keys are stored in the backend <code>.env</code> file — never in Angular.
+        </p>
+      </div>
+      <span class="tag">{{aiProvider() || 'loading'}}</span>
+    </div>
+  </article>
+
+  <div class="security">
+    <b>Security note</b>
+    <p>
+      Google OAuth client secrets, refresh tokens, and AI API keys are kept on the backend only.
+      They are never exposed to the browser or Angular environment files.
+    </p>
+  </div>
+
+  <app-confirm-modal
+    [isOpen]="confirmResetOpen()"
+    title="Clear All Candidate Data"
+    message="Are you sure you want to remove all candidate messages and their AI drafts from the database? This action cannot be undone."
+    confirmText="Clear all data"
+    cancelText="Cancel"
+    [isDanger]="true"
+    [busy]="busy()"
+    (confirmed)="executeReset()"
+    (cancelled)="cancelReset()" />
+</section>

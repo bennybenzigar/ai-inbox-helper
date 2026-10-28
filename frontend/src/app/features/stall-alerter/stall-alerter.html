@@ -1,0 +1,175 @@
+<section class="page">
+  <div class="toolbar">
+    <div class="title-area">
+      <h2>Hiring Board Stall Alerter</h2>
+      <p>Upload your hiring board CSV — AI finds stalled candidates, ranks them, and suggests next actions.</p>
+    </div>
+
+    <div class="toolbar-actions">
+      <div class="threshold-selector">
+        <label>Stall Threshold:</label>
+        <select
+          [value]="thresholdDays()"
+          (change)="onThresholdChange(+$any($event.target).value)">
+          <option [value]="3">≥ 3 Days</option>
+          <option [value]="5">≥ 5 Days (Default)</option>
+          <option [value]="7">≥ 7 Days</option>
+          <option [value]="10">≥ 10 Days</option>
+          <option [value]="14">≥ 14 Days</option>
+        </select>
+      </div>
+
+      <input
+        #boardFileInput
+        type="file"
+        accept=".csv,text/csv"
+        style="display:none"
+        (change)="onFileSelected($event)" />
+
+      <button class="btn primary" (click)="boardFileInput.click()" [disabled]="busy()">
+        ↑ Upload Board CSV
+      </button>
+
+      <button type="button" class="btn secondary" (click)="downloadSample()">
+        ↓ Download Template
+      </button>
+
+      @if(analysis()){
+        <button
+          class="btn primary"
+          (click)="exportResultsCsv(false)"
+          [disabled]="!filteredAlerts().length"
+          title="Export all alerts matching current filter">
+          ↓ Export Filtered ({{filteredAlerts().length}})
+        </button>
+        <button
+          class="btn"
+          (click)="exportResultsCsv(true)"
+          [disabled]="!pagedAlerts().length"
+          title="Export only alerts on page {{page()}}">
+          ↓ Export Page {{page()}}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if(notice()){
+    <div class="notice">{{notice()}}</div>
+  }
+
+  @if(!analysis() && !busy()){
+    <div class="empty-state">
+      <div class="empty-icon">🎯</div>
+      <h3>No data loaded</h3>
+      <p>Upload a hiring board CSV to find stalled candidates.</p>
+      <button class="btn primary" (click)="boardFileInput.click()">Upload Board CSV</button>
+    </div>
+  }
+
+  @if(busy()){
+    <app-loading-spinner [text]="'Analyzing hiring board data...'"></app-loading-spinner>
+  }
+
+  @if(analysis(); as data){
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="label">Total in Pipeline</span>
+        <b>{{data.totalCandidates}}</b>
+        <small>Active candidates</small>
+      </div>
+      <div class="stat-card alert">
+        <span class="label">Stalled Candidates</span>
+        <b>{{data.stalledCount}}</b>
+        <small>≥ {{data.thresholdDays}} days inactive</small>
+      </div>
+      <div class="stat-card danger">
+        <span class="label">Critical Urgency</span>
+        <b>{{data.summary.criticalCount}}</b>
+        <small>Offer / Final rounds</small>
+      </div>
+      <div class="stat-card warning">
+        <span class="label">High Urgency</span>
+        <b>{{data.summary.highCount}}</b>
+        <small>Mid pipeline stages</small>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Prioritized Follow-Up Queue</h3>
+          <p>{{filteredAlerts().length}} alerts · page {{page()}} of {{Math.max(1,Math.ceil(filteredAlerts().length/pager.pageSize()))}}</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Filter Urgency:</label>
+          <select
+            [value]="selectedUrgency()"
+            (change)="onUrgencyChange($any($event.target).value)">
+            <option value="all">All Urgencies ({{data.alerts.length}})</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+          </select>
+        </div>
+      </div>
+
+      @if(pagedAlerts().length){
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Candidate</th>
+                <th>Role</th>
+                <th>Stage</th>
+                <th>Days Stalled</th>
+                <th>Recruiter</th>
+                <th>Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(alert of pagedAlerts();track alert.id){
+                <tr [class.critical-row]="alert.urgency === 'Critical'">
+                  <td>
+                    <span class="rank-badge" [class]="alert.urgency.toLowerCase()">
+                      #{{alert.priorityRank}}
+                    </span>
+                  </td>
+                  <td>
+                    <b>{{alert.candidateName}}</b>
+                    <small>{{alert.candidateEmail}}</small>
+                  </td>
+                  <td>{{alert.role}}</td>
+                  <td><span class="stage-pill">{{alert.stage}}</span></td>
+                  <td>
+                    <span class="days-badge" [class.danger]="alert.daysInStage >= 10">
+                      {{alert.daysInStage}} days
+                    </span>
+                  </td>
+                  <td><small class="recruiter">{{alert.assignedRecruiter}}</small></td>
+                  <td class="action-cell">
+                    <span class="action-text">{{alert.recommendedAction}}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <app-paginator
+          [page]="page()"
+          [total]="filteredAlerts().length"
+          [perPage]="pager.pageSize()"
+          (pageChange)="page.set($event)" />
+
+      }@else{
+        <div class="empty">
+          <div class="empty-icon">✓</div>
+          <h4>No stalled candidates for selected filter</h4>
+          <p>All candidates are moving through the hiring funnel.</p>
+        </div>
+      }
+    </div>
+  }
+</section>

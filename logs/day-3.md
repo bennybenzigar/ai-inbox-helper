@@ -1,0 +1,29 @@
+# Day 3 — Progress Log
+
+- **Goal:** End-to-end Gmail OAuth testing via HTTPS tunnel; verify Pub/Sub push delivery reaches the webhook; validate History API sync processes real emails.
+- **Work completed:**
+  - Verified backend starts cleanly with all env keys set (`npm run dev` — `:3000`).
+  - Confirmed `GET /api/health` returns `{ status: "ok" }` and `GET /api/status` reflects `gmailConnected: false` (expected before OAuth).
+  - Confirmed `GET /auth/google` with real credentials produces a proper Google OAuth redirect URL including `state` parameter and `access_type=offline`.
+  - Confirmed `POST /auth/disconnect` clears connection_metadata and SSE broadcasts `{ connected: false }`.
+  - Verified demo mode still works fully (all 6 Angular routes functional, 500-message import, draft workflow).
+  - Confirmed Angular production build still passes (`npm run build` — 342 kB bundle, exit 0).
+  - Confirmed all 23 backend tests pass.
+  - Confirmed all 14 frontend tests pass.
+- **AI prompts/tools used:**
+  - Antigravity IDE + Angular CLI MCP server for project inspection.
+  - PowerShell `Invoke-RestMethod` for health/status/disconnect endpoint verification.
+- **Suggestions accepted:**
+  - Keeping HTTPS tunnel step explicit in docs rather than scripting it — reduces attack surface from auto-tunneling.
+- **Suggestions rejected/corrected:**
+  - Did not attempt to complete OAuth callback test without HTTPS (Google rejects HTTP redirect URIs in production).
+- **Tests run and results:**
+  - Backend: 23/23 pass.
+  - Frontend: 14/14 pass.
+  - Manual API: `/api/health`, `/api/status`, `/auth/google` (redirect verified), `/auth/disconnect` verified.
+- **Failure or limitation:**
+  - Real OAuth callback requires HTTPS redirect URI. Local HTTP testing not possible without tunnel or `localhost` exemption in Google Cloud Console.
+  - Pub/Sub push delivery requires HTTPS endpoint; webhook was not triggered by real Google Cloud event.
+- **Next steps:**
+  - Set up ngrok/Cloudflare tunnel and update `GOOGLE_CALLBACK_URL` + `APP_BASE_URL` in `.env`.
+  - Complete full OAuth round-trip with a real Google test account.

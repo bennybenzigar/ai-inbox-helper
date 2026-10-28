@@ -1,0 +1,141 @@
+<section class="page">
+  <a class="back" routerLink="/inbox">← Back to inbox</a>@if(notice()){
+  <div class="notice">{{notice()}}</div>
+  }@if(busy()&&!message()){
+  <div class="panel empty">Loading message…</div>
+  }@else if(message();as m){
+  <div class="detail-grid">
+    <article class="panel original">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">ORIGINAL MESSAGE</span>
+          <h2>{{m.subject}}</h2>
+        </div>
+        <span class="source">{{m.source==='csv'?'CSV Upload':'Gmail'}}</span>
+      </div>
+      <div class="sender">
+        <span class="avatar">{{m.senderName.slice(0,1)}}</span>
+        <div><b>{{m.senderName}}</b><small>{{m.senderEmail}}</small></div>
+        <time>{{m.receivedAt|date:'MMM d, y, h:mm a'}}</time>
+      </div>
+      <div class="message-body">{{m.body}}</div>
+      <div class="meta">
+        <span>Detected intent</span
+        ><app-intent-badge [intent]="m.intent" /><span class="confidence"
+          >{{m.confidence*100|number:'1.0-0'}}% confidence</span
+        >
+      </div>
+    </article>
+    <article class="panel draft-panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">AI ASSISTED RESPONSE</span>
+          <h2>Draft reply</h2>
+        </div>
+        @if(draft()){<span class="status" [class]="'status '+draft()!.status"
+          >{{draft()!.status}}</span
+        >}
+      </div>
+      @if(draft()){
+      <div class="mock-note">✦ Mock AI draft · Never sent automatically</div>
+      <textarea
+        aria-label="Edit reply draft"
+        [ngModel]="body()"
+        (ngModelChange)="body.set($event)"
+        [disabled]="draft()!.status!=='pending'"
+        rows="13"
+      ></textarea>
+      <div class="draft-footer">
+        <span>Version {{draft()!.version}}</span
+        ><span>{{body().length}} characters</span>
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="copy()">▢ Copy</button
+        ><button
+          class="btn"
+          (click)="regenerate()"
+          [disabled]="busy()||draft()!.status!=='pending'"
+        >
+          ↻ Regenerate</button
+        ><button
+          class="btn primary"
+          (click)="save()"
+          [disabled]="busy()||draft()!.status!=='pending'"
+        >
+          Save edits
+        </button>
+      </div>
+      @if(draft()!.status==='pending'){
+      <div class="review-actions">
+        <button
+          class="btn reject"
+          (click)="review('reject')"
+          [disabled]="busy()"
+        >
+          Reject draft</button
+        ><button
+          class="btn approve"
+          (click)="review('approve')"
+          [disabled]="busy()"
+        >
+          ✓ Approve draft
+        </button>
+      </div>
+      }@else if(draft()!.status==='approved'){
+      <div class="send-section">
+        <p class="reviewed">✓ Approved by human review {{draft()!.reviewedAt|date:'medium'}}</p>
+
+        @if(!gmailConnected()){
+          <div class="gmail-notice-alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-text">
+              <strong>Gmail is not connected</strong>
+              <p>Sending email replies requires an active Gmail connection. Connect your account in Mailbox Integration.</p>
+              <a routerLink="/gmail-connection" class="connect-action">Connect Gmail account →</a>
+            </div>
+          </div>
+        }
+
+        <button
+          class="btn send"
+          (click)="promptSend()"
+          [disabled]="busy() || !gmailConnected()"
+          [title]="!gmailConnected() ? 'Gmail must be connected to send responses' : 'Send approved response to candidate'"
+        >
+          ✈ Send Response to Candidate
+        </button>
+      </div>
+      }@else if(draft()!.status==='sent'){
+      <div class="sent-section">
+        <span class="sent-badge">✓ Response sent to candidate</span>
+      </div>
+      }@else{
+      <p class="reviewed rejected-note">Rejected during review {{draft()!.reviewedAt|date:'medium'}}</p>
+      }}@else{
+      <div class="empty">
+        <div class="empty-icon">✦</div>
+        <h3>No draft yet</h3>
+        <p>Generate a suggested response, then edit and review it.</p>
+        <button class="btn primary" (click)="createDraft()" [disabled]="busy()">
+          Generate AI draft
+        </button>
+      </div>
+      }
+    </article>
+  </div>
+  <div class="safety-note">
+    Human review is mandatory. Approving a draft records your review decision. Sending is an explicit, separate action triggered by the reviewer.
+  </div>
+  }
+
+  <app-confirm-modal
+    [isOpen]="confirmSendOpen()"
+    title="Send Response to Candidate"
+    [message]="'Send this approved email response to ' + (message()?.senderName || 'the candidate') + ' (' + (message()?.senderEmail || '') + ') via your connected Gmail account?'"
+    confirmText="Send Response"
+    cancelText="Cancel"
+    [isDanger]="false"
+    [busy]="busy()"
+    (confirmed)="executeSend()"
+    (cancelled)="cancelSend()" />
+</section>

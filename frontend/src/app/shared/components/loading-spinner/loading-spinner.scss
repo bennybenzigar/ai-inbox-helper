@@ -1,0 +1,64 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeIn 0.15s ease-out;
+
+  &.small {
+    padding: 10px;
+    flex-direction: row;
+    gap: 8px;
+    font-size: 12px;
+
+    .spinner-ring {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+    }
+  }
+
+  &.large {
+    padding: 60px 20px;
+    font-size: 14px;
+
+    .spinner-ring {
+      width: 36px;
+      height: 36px;
+      border-width: 3.5px;
+    }
+  }
+}
+
+.spinner-ring {
+  width: 26px;
+  height: 26px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  box-sizing: border-box;
+}
+
+.loader-text {
+  color: #64748b;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

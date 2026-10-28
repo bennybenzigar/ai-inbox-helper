@@ -1,0 +1,228 @@
+<section class="page">
+  <div class="toolbar">
+    <label class="search">
+      @if(isSearching()){
+        <span class="search-spinner" aria-hidden="true"></span>
+      }@else{
+        <span>⌕</span>
+      }
+      <input
+        aria-label="Search sent messages"
+        placeholder="Search recipient, subject or reply content…"
+        [value]="search()"
+        (input)="onSearchInput($any($event.target).value)"
+        (keyup.enter)="load()" />
+      @if(search()){
+        <button type="button" class="clear-search-btn" (click)="clearSearch()" title="Clear search">✕</button>
+      }
+    </label>
+
+    <select
+      aria-label="Filter by intent"
+      [value]="selectedIntent()"
+      (change)="onIntentChange($any($event.target).value)">
+      <option value="all" [selected]="selectedIntent() === 'all'">All intents</option>
+      @for(intent of intents; track intent){
+        <option [value]="intent" [selected]="selectedIntent() === intent">{{intent}}</option>
+      }
+    </select>
+
+    <button class="btn" (click)="load()">Apply filters</button>
+
+    <button
+      type="button"
+      class="btn primary"
+      (click)="downloadExport(false)"
+      [disabled]="busy() || !total()"
+      title="Export all sent messages matching current filters">
+      ↓ Export Filtered ({{total()}})
+    </button>
+
+    <button
+      type="button"
+      class="btn"
+      (click)="downloadExport(true)"
+      [disabled]="busy() || !pagedItems().length"
+      title="Export only sent messages on page {{page()}}">
+      ↓ Export Page {{page()}}
+    </button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Sent Candidate Messages (Outbox)</h2>
+        <p>{{total()}} sent messages · page {{page()}} of {{Math.max(1, Math.ceil(total() / pager.pageSize()))}}</p>
+      </div>
+      <button class="btn" (click)="load()">↻ Refresh</button>
+    </div>
+
+    @if(selectedIds().size > 0){
+      <div class="bulk-bar">
+        <div class="bulk-info">
+          <span class="bulk-count">{{selectedIds().size}}</span>
+          <span>record{{selectedIds().size > 1 ? 's' : ''}} selected</span>
+        </div>
+        <div class="bulk-actions">
+          <button class="btn danger" (click)="promptDeleteSelected()">
+            🗑 Delete Selected ({{selectedIds().size}})
+          </button>
+          <button class="btn" (click)="clearSelection()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    }
+
+    @if(busy()){
+      <app-loading-spinner [text]="'Loading sent messages...'"></app-loading-spinner>
+    }@else if(pagedItems().length){
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  [checked]="isAllCurrentPageSelected()"
+                  (change)="toggleSelectAll()"
+                  aria-label="Select all on this page" />
+              </th>
+              <th>Recipient</th>
+              <th>Sent Subject & Preview</th>
+              <th>Intent</th>
+              <th>Sent At</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for(item of pagedItems(); track item.id){
+              <tr [class.selected-row]="isSelected(item.messageId)">
+                <td class="col-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(item.messageId)"
+                    (change)="toggleSelect(item.messageId)"
+                    aria-label="Select sent message" />
+                </td>
+                <td>
+                  <div class="person">
+                    <span class="avatar">{{item.senderName.slice(0, 1)}}</span>
+                    <div>
+                      <div class="name-row">
+                        <b>{{item.senderName}}</b>
+                        <span class="source-tag" [class]="item.source">{{item.source}}</span>
+                      </div>
+                      <small>{{item.senderEmail}}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <b>{{item.replySubject}}</b>
+                  <small>{{item.body.slice(0, 75)}}…</small>
+                </td>
+                <td><app-intent-badge [intent]="item.intent" /></td>
+                <td>
+                  <span class="sent-date">{{item.sentAt | date:'MMM d, y, h:mm a'}}</span>
+                </td>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="btn-view"
+                      (click)="openPreview(item, $event)"
+                      title="View sent email details">
+                      View Reply
+                    </button>
+                    <a [routerLink]="['/messages', item.messageId]" class="open-link" title="Open message thread">
+                      Thread →
+                    </a>
+                    <button
+                      type="button"
+                      class="btn-delete"
+                      (click)="promptDeleteSingle(item, $event)"
+                      title="Delete sent record"
+                      aria-label="Delete sent record">
+                      🗑
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-paginator
+        [page]="page()"
+        [total]="total()"
+        [perPage]="pager.pageSize()"
+        (pageChange)="onPageChange($event)" />
+
+    }@else{
+      <div class="empty">
+        <div class="empty-icon">📤</div>
+        <h3>No sent messages found</h3>
+        <p>Candidate replies approved and sent via Gmail or the inbox will appear here in your Outbox.</p>
+        <div class="empty-actions">
+          <a routerLink="/inbox" class="btn primary">Go to Inbox to Review Drafts</a>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if(previewItem()){
+    <div class="preview-backdrop" (click)="closePreview()">
+      <div class="preview-card" (click)="$event.stopPropagation()">
+        <div class="preview-head">
+          <div class="preview-badge">Sent Email</div>
+          <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close preview">✕</button>
+        </div>
+
+        <div class="preview-meta">
+          <div class="meta-row">
+            <span class="meta-label">To:</span>
+            <span class="meta-val"><b>{{previewItem()!.senderName}}</b> &lt;{{previewItem()!.senderEmail}}&gt;</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Subject:</span>
+            <span class="meta-val"><b>{{previewItem()!.replySubject}}</b></span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Sent At:</span>
+            <span class="meta-val">{{previewItem()!.sentAt | date:'fullDate'}} at {{previewItem()!.sentAt | date:'shortTime'}}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Intent:</span>
+            <span class="meta-val"><app-intent-badge [intent]="previewItem()!.intent" /></span>
+          </div>
+        </div>
+
+        <div class="preview-body-wrap">
+          <div class="body-title">Sent Reply Message:</div>
+          <pre class="preview-body">{{previewItem()!.body}}</pre>
+        </div>
+
+        <div class="preview-foot">
+          <a [routerLink]="['/messages', previewItem()!.messageId]" (click)="closePreview()" class="btn secondary">
+            Open Message Thread →
+          </a>
+          <button type="button" class="btn primary" (click)="closePreview()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <app-confirm-modal
+    [isOpen]="modalOpen()"
+    [title]="modalTitle()"
+    [message]="modalMessage()"
+    confirmText="Delete permanently"
+    cancelText="Cancel"
+    [isDanger]="true"
+    [busy]="busy()"
+    (confirmed)="executeDelete()"
+    (cancelled)="cancelDelete()" />
+</section>
