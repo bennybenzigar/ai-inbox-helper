@@ -1,6 +1,11 @@
-import type { GoogleGenAI } from '@google/genai';
 import { env } from '../config/env';
 import type { Intent, Message } from '../models/types';
+
+interface GeminiClient {
+  models: {
+    generateContent(params: { model: string; contents: string }): Promise<{ text?: string | null }>;
+  };
+}
 
 export interface AIProvider {
   readonly name: string;
@@ -64,13 +69,13 @@ export class ContextualAIProvider implements AIProvider {
 /** Gemini provider using the official @google/genai SDK with automatic contextual fallback */
 export class GeminiAIProvider implements AIProvider {
   readonly name = 'gemini';
-  private client: GoogleGenAI | null = null;
+  private client: GeminiClient | null = null;
   private fallback = new ContextualAIProvider();
 
-  private async getClient(): Promise<GoogleGenAI> {
+  private async getClient(): Promise<GeminiClient> {
     if (!this.client) {
       const { GoogleGenAI } = await import('@google/genai');
-      this.client = new GoogleGenAI({ apiKey: env.AI_API_KEY });
+      this.client = new GoogleGenAI({ apiKey: env.AI_API_KEY }) as unknown as GeminiClient;
     }
     return this.client;
   }
