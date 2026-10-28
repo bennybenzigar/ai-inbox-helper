@@ -15,7 +15,9 @@ services:
           name: ai-inbox-db
           property: connectionString
       - key: FRONTEND_ORIGIN
-        value: "*"
+        value: "https://ai-inbox-frontend.onrender.com"
+      - key: GOOGLE_CALLBACK_URL
+        value: "https://ai-inbox-backend.onrender.com/auth/google/callback"
       - key: AI_PROVIDER
         value: mock
 

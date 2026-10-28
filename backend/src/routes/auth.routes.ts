@@ -16,6 +16,13 @@ import { publishEvent } from '../services/event-bus.service';
 const router = Router();
 const oauthStates = new Map<string, number>();
 
+function getFrontendUrl(path: string): string {
+  const origin = env.FRONTEND_ORIGIN && env.FRONTEND_ORIGIN !== '*'
+    ? env.FRONTEND_ORIGIN.replace(/\/$/, '')
+    : 'https://ai-inbox-frontend.onrender.com';
+  return `${origin}${path}`;
+}
+
 router.get('/google', (req, res) => {
   try {
     const oauth = createGoogleOAuthClient();
@@ -54,7 +61,7 @@ router.get('/google/callback', async (req, res) => {
     return res.status(400).send('OAuth state validation failed. Please reconnect Gmail.');
   }
   if (req.query.error) {
-    return res.redirect(`${env.FRONTEND_ORIGIN}/gmail-connection?error=oauth_denied`);
+    return res.redirect(getFrontendUrl('/gmail-connection?error=oauth_denied'));
   }
 
   try {
@@ -84,7 +91,7 @@ router.get('/google/callback', async (req, res) => {
     syncGmailMessages(repo, 20).catch((err) => console.warn('Initial Gmail sync failed:', err));
 
     publishEvent('gmail-notification-received', { connected: true, account: userEmail });
-    return res.redirect(`${env.FRONTEND_ORIGIN}/gmail-connection?connected=true`);
+    return res.redirect(getFrontendUrl('/gmail-connection?connected=true'));
   } catch {
     res.status(502).send('Google OAuth exchange failed. Check backend configuration and try again.');
   }
