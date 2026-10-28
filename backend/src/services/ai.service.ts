@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import type { GoogleGenAI } from '@google/genai';
 import { env } from '../config/env';
 import type { Intent, Message } from '../models/types';
 
@@ -64,11 +64,15 @@ export class ContextualAIProvider implements AIProvider {
 /** Gemini provider using the official @google/genai SDK with automatic contextual fallback */
 export class GeminiAIProvider implements AIProvider {
   readonly name = 'gemini';
-  private client: GoogleGenAI;
+  private client: GoogleGenAI | null = null;
   private fallback = new ContextualAIProvider();
 
-  constructor() {
-    this.client = new GoogleGenAI({ apiKey: env.AI_API_KEY });
+  private async getClient(): Promise<GoogleGenAI> {
+    if (!this.client) {
+      const { GoogleGenAI } = await import('@google/genai');
+      this.client = new GoogleGenAI({ apiKey: env.AI_API_KEY });
+    }
+    return this.client;
   }
 
   async generateDraft(message: Message, variation = 0): Promise<string> {
@@ -76,6 +80,7 @@ export class GeminiAIProvider implements AIProvider {
       return this.fallback.generateDraft(message, variation);
     }
     try {
+      const client = await this.getClient();
       const model = env.AI_MODEL || 'gemini-3.8-flash';
       const prompt = `You are a professional talent acquisition assistant drafting a tailored, polite, and concise email reply to a job candidate.
 
@@ -97,7 +102,7 @@ Instructions:
 ${variation > 0 ? `5. This is revision attempt #${variation + 1}: provide a fresh, alternative phrasing with distinct wording.` : ''}
 6. Return ONLY the drafted email response without markdown code blocks, preamble, or meta notes.`;
 
-      const response = await this.client.models.generateContent({
+      const response = await client.models.generateContent({
         model,
         contents: prompt
       });

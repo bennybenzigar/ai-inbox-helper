@@ -4,7 +4,7 @@ services:
     name: ai-inbox-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     plan: free
     envVars:
@@ -24,7 +24,7 @@ services:
     name: ai-inbox-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist/ai-inbox-helper/browser
     routes:
       - type: rewrite
