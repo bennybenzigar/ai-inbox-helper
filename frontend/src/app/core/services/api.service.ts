@@ -73,6 +73,12 @@ export class ApiService {
   resetDemo() {
     return this.http.delete<{ ok: boolean }>(`${this.base}/api/demo/data`);
   }
+  syncGmail() {
+    return this.http.post<{ synced: number; total: number }>(`${this.base}/api/gmail/sync`, {});
+  }
+  getGmailSyncStatus() {
+    return this.http.get<{ connected: boolean; lastSyncedAt: string | null; intervalMinutes: number }>(`${this.base}/api/gmail/sync-status`);
+  }
   getDrafts(status = "all") {
     return this.http.get<{ items: Draft[]; total: number }>(
       `${this.base}/api/drafts`,

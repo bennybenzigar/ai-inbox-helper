@@ -72,6 +72,16 @@ select,
   align-items: center;
   margin-bottom: 18px;
 }
+.head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.sync-tag {
+  color: #4caf50;
+  font-style: italic;
+}
 h2 {
   font-size: 15px;
   margin: 0 0 5px;

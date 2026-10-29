@@ -34,13 +34,16 @@ export class Inbox implements OnInit, OnDestroy {
   readonly intents = INTENTS;
   readonly busy = signal(false);
   readonly isSearching = signal(false);
+  readonly syncing = signal(false);
   readonly notice = signal('');
   readonly page = signal(1);
+  readonly lastSyncedAt = signal<string | null>(null);
   readonly sampleCsvUrl = `${environment.apiBaseUrl}/api/messages/sample-csv`;
   readonly exportCsvUrl = `${environment.apiBaseUrl}/api/messages/export-csv`;
   private eventSub?: Subscription;
   private querySub?: Subscription;
   private searchSub?: Subscription;
+  private autoSyncTimer?: ReturnType<typeof setInterval>;
   readonly searchSubject = new Subject<string>();
 
   // Multi-selection state
@@ -120,12 +123,56 @@ export class Inbox implements OnInit, OnDestroy {
     this.eventSub = this.events.events.subscribe((e) => {
       if (e.type === 'messages-updated') this.load();
     });
+
+    // Load last sync time from backend
+    this.api.getGmailSyncStatus().subscribe({
+      next: (s) => { if (s.lastSyncedAt) this.lastSyncedAt.set(s.lastSyncedAt); },
+      error: () => {}
+    });
+
+    // Auto-sync Gmail every 5 minutes while inbox is open
+    this.autoSyncTimer = setInterval(() => this.runAutoSync(), 5 * 60 * 1000);
+  }
+
+  private runAutoSync(): void {
+    this.api.syncGmail().subscribe({
+      next: (result) => {
+        this.lastSyncedAt.set(new Date().toISOString());
+        if (result.synced > 0) {
+          this.toast.success(`Auto-synced ${result.synced} new email(s) from Gmail.`);
+          this.load();
+        }
+      },
+      error: () => {} // Silently ignore auto-sync errors
+    });
+  }
+
+  syncNow(): void {
+    if (this.syncing()) return;
+    this.syncing.set(true);
+    this.api.syncGmail().subscribe({
+      next: (result) => {
+        this.syncing.set(false);
+        this.lastSyncedAt.set(new Date().toISOString());
+        if (result.synced > 0) {
+          this.toast.success(`Synced ${result.synced} new email(s) from Gmail.`);
+          this.load();
+        } else {
+          this.toast.info('Inbox is up to date — no new emails found.');
+        }
+      },
+      error: () => {
+        this.syncing.set(false);
+        this.toast.error('Gmail sync failed. Check your connection or reconnect Gmail.');
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.eventSub?.unsubscribe();
     this.querySub?.unsubscribe();
     this.searchSub?.unsubscribe();
+    if (this.autoSyncTimer) clearInterval(this.autoSyncTimer);
   }
 
   onSearchInput(value: string): void {

@@ -83,9 +83,18 @@
     <div class="panel-head">
       <div>
         <h2>Candidate messages</h2>
-        <p>{{state.total()}} messages · page {{page()}} of {{Math.max(1,Math.ceil(state.total()/pager.pageSize()))}}</p>
+        <p>{{state.total()}} messages · page {{page()}} of {{Math.max(1,Math.ceil(state.total()/pager.pageSize()))}}
+          @if(lastSyncedAt()) {
+            <span class="sync-tag">· Last Gmail sync: {{ lastSyncedAt() | date:'shortTime' }}</span>
+          }
+        </p>
       </div>
-      <button class="btn" (click)="load()">↻ Refresh</button>
+      <div class="head-actions">
+        <button class="btn primary" (click)="syncNow()" [disabled]="syncing() || busy()" title="Pull latest emails from Gmail now">
+          {{ syncing() ? '⟳ Syncing…' : '⟳ Sync Gmail' }}
+        </button>
+        <button class="btn" (click)="load()">↻ Refresh</button>
+      </div>
     </div>
 
     @if(selectedIds().size > 0){

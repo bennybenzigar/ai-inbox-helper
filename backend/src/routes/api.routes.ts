@@ -62,6 +62,14 @@ router.post('/gmail/sync', async (_req, res, next) => {
   }
 });
 
+router.get('/gmail/sync-status', (_req, res) => {
+  res.json({
+    connected: isGmailConnected(),
+    lastSyncedAt: getLastSyncedAt(),
+    intervalMinutes: 5
+  });
+});
+
 router.get('/messages', async (req, res, next) => {
   try {
     const q = req.query.q !== undefined ? String(req.query.q).trim() : undefined;
