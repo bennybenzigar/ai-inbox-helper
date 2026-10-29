@@ -178,13 +178,6 @@
           </tbody>
         </table>
       </div>
-
-      <app-paginator
-        [page]="page()"
-        [total]="state.total()"
-        [perPage]="pager.pageSize()"
-        (pageChange)="onPageChange($event)" />
-
     }@else{
       <div class="empty">
         <div class="empty-icon">✉</div>
@@ -194,6 +187,14 @@
           <button class="btn" (click)="csvFileInput.click()">Upload CSV</button>
         </div>
       </div>
+    }
+
+    @if(state.total() > 0){
+      <app-paginator
+        [page]="page()"
+        [total]="state.total()"
+        [perPage]="pager.pageSize()"
+        (pageChange)="onPageChange($event)" />
     }
   </div>
 

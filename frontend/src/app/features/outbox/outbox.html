@@ -152,13 +152,6 @@
           </tbody>
         </table>
       </div>
-
-      <app-paginator
-        [page]="page()"
-        [total]="total()"
-        [perPage]="pager.pageSize()"
-        (pageChange)="onPageChange($event)" />
-
     }@else{
       <div class="empty">
         <div class="empty-icon">📤</div>
@@ -168,6 +161,14 @@
           <a routerLink="/inbox" class="btn primary">Go to Inbox to Review Drafts</a>
         </div>
       </div>
+    }
+
+    @if(total() > 0){
+      <app-paginator
+        [page]="page()"
+        [total]="total()"
+        [perPage]="pager.pageSize()"
+        (pageChange)="onPageChange($event)" />
     }
   </div>
 

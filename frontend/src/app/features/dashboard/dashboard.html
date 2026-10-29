@@ -144,13 +144,6 @@
         </tbody>
       </table>
     </div>
-
-    <app-paginator
-      [page]="page()"
-      [total]="state.messages().length"
-      [perPage]="pager.pageSize()"
-      (pageChange)="page.set($event)" />
-
     }@else{
     <div class="empty-small">
       Your inbox is empty.
@@ -158,6 +151,14 @@
         Upload a messages CSV to get started
       </button>
     </div>
+    }
+
+    @if(state.messages().length > 0){
+    <app-paginator
+      [page]="page()"
+      [total]="state.messages().length"
+      [perPage]="pager.pageSize()"
+      (pageChange)="page.set($event)" />
     }
   </article>
 </section>

@@ -230,6 +230,14 @@ export class Outbox implements OnInit, OnDestroy {
     this.pendingDeleteIds.set([]);
   }
 
+  private clampPageAfterDelete(deletedCount: number): void {
+    const remaining = Math.max(0, this.total() - deletedCount);
+    const maxPage = Math.max(1, Math.ceil(remaining / this.pager.pageSize()));
+    if (this.page() > maxPage) {
+      this.page.set(maxPage);
+    }
+  }
+
   executeDelete(): void {
     const ids = this.pendingDeleteIds();
     if (ids.length === 0) return;
@@ -245,6 +253,7 @@ export class Outbox implements OnInit, OnDestroy {
             return next;
           });
           this.toast.success('Sent message record deleted.');
+          this.clampPageAfterDelete(1);
           this.load();
         },
         error: (err) => {
@@ -258,6 +267,7 @@ export class Outbox implements OnInit, OnDestroy {
           this.modalOpen.set(false);
           this.clearSelection();
           this.toast.success(`Successfully deleted ${res.deleted} sent records.`);
+          this.clampPageAfterDelete(res.deleted);
           this.load();
         },
         error: (err) => {
