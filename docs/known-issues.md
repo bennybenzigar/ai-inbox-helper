@@ -1,135 +1,117 @@
-# Known Issues & Limitations
+# Known Issues & Limitations — AI Inbox Helper
 
-> What failed, what didn't work, and why — an honest post-mortem.
+> An honest account of what failed, what didn't work, and why.
 
 ---
 
-## 1. Google OAuth — Stuck in Testing Mode (🔴 Critical)
+## 🔴 Issue #1: Google OAuth Stuck in Testing Mode
 
 ### Problem
-
 Google OAuth consent screen **could not be moved to production**. The app remains in **"Testing" mode**, which means:
+- Only **manually added test users** can sign in via Google
+- The familiar "Choose an account" popup does **not appear** for unregistered users
+- Maximum of **100 test users** can be added manually via Google Cloud Console
 
-- Only **manually added test users** can sign in.
-- Automatic Google account selection (the familiar "Choose an account" popup for any Google user) **does not work** for unregistered emails.
-- Maximum of **100 test users** can be added manually.
+### Root Cause: Three Compounding Factors
 
-### Root Cause
+#### Factor A — Domain Ownership Cannot Be Verified
+Google requires verifying ownership of the home page URL (`https://ai-inbox-frontend.onrender.com`) via Google Search Console. Since `onrender.com` is **Render's domain**, we:
+- ❌ Cannot add DNS TXT records (we don't control Render's DNS)
+- ❌ Cannot upload an HTML verification file reliably (Render's static site hosting may not serve it correctly before the SPA takes over)
 
-To move an OAuth app from Testing → Production, Google requires:
+**Google's Error:**
+> *"The website of your home page URL 'https://ai-inbox-frontend.onrender.com' is not registered to you."*
 
-1. **Domain ownership verification** — The home page URL (`https://ai-inbox-frontend.onrender.com`) must be verified in Google Search Console. Since `onrender.com` is Render's domain (not ours), we **cannot add a DNS TXT record** to prove ownership. The HTML file verification method is an alternative, but Google's crawler had issues indexing the Render-hosted SPA.
+#### Factor B — Privacy Policy Page Not Readable by Crawler
+The privacy policy was initially built as an **Angular SPA route** (`/privacy`). Google's verification crawler **does not execute JavaScript** — it saw a blank `<app-root></app-root>` tag, not the policy content.
 
-2. **Privacy Policy compliance** — Google requires a privacy policy page with sufficient content detailing:
-   - What user data is collected
-   - How Google API data is used
-   - Compliance with [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy)
-   - Limited Use disclosure
+**Google's Error:**
+> *"Your privacy policy page at 'https://ai-inbox-frontend.onrender.com' does not have sufficient content."*
 
-   We created a full privacy policy page at `/privacy`, but Google's review flagged:
-   > *"Your privacy policy page at https://ai-inbox-frontend.onrender.com does not have sufficient content."*
-
-   This is likely because Angular SPA routing returns a blank page to Google's crawler (which doesn't execute JavaScript), and/or the Render free-tier cold-start delay caused the crawler to see an empty response.
-
-3. **Different email accounts** — The Google Cloud Console project was created with **one Google account**, while the GitHub repository and Render deployments use a **different email**. This mismatch caused verification failures because Google checks that the domain owner, app developer, and support email all align.
-
-### What We Tried
-
-| Attempt | Result |
-|---------|--------|
-| Created `/privacy` Angular route with full privacy policy content | ❌ Google crawler can't execute JavaScript in SPA |
-| Created `/terms` Angular route with Terms of Service | ❌ Same SPA crawling issue |
-| Added privacy/terms links in sidebar and settings page | ✅ Working in-app |
-| Attempted domain verification for `ai-inbox-frontend.onrender.com` | ❌ Cannot modify DNS for Render's subdomain |
-| **Created static `privacy.html` in `frontend/public/`** | ✅ Crawler-readable at `/privacy.html` |
-| **Created static `terms.html` in `frontend/public/`** | ✅ Crawler-readable at `/terms.html` |
-| **Added `_redirects` file for Render SPA routing** | ✅ All Angular routes now work on direct navigation |
-| **Added `/privacy` and `/terms` backend endpoints** | ✅ Available at `ai-inbox-backend.onrender.com/privacy` |
-
-### Impact
-
-- **Any new user** trying the deployed app at `https://ai-inbox-frontend.onrender.com` **cannot connect their Gmail** unless their email is manually added as a test user in the Google Cloud Console.
-- The Gmail sync, AI-powered email classification, and all inbox features are **inaccessible to unapproved users**.
-
-### Workaround (Current)
-
-1. Go to [Google Cloud Console → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-2. Under **"Test users"**, click **"+ Add Users"**
-3. Enter the email address of the person who needs access
-4. They can now sign in and use Gmail features
-
-### Proper Fix (Not Implemented)
-
-- Use a **custom domain** (e.g., `ai-inbox-helper.com`) instead of Render's subdomain
-- Point DNS to Render and verify domain ownership in Google Search Console
-- Host a **server-side rendered** or **static HTML** privacy policy page (not behind Angular SPA routing)
-- Ensure the Google Cloud Console project owner email matches the domain owner
-- Re-submit for production approval after 24-hour DNS propagation
-
----
-
-## 2. Email Account Mismatch (🟡 Configuration Issue)
-
-### Problem
-
+#### Factor C — Email Account Mismatch
 The project uses **different Google accounts** across services:
 
-| Service | Email Used |
-|---------|-----------|
+| Service | Account |
+|---------|---------|
 | Google Cloud Console (OAuth credentials) | Email A |
 | GitHub repository | Email B |
 | Render deployment | Email B |
 
-### Impact
+Google's verification checks that the **app developer** (Cloud Console owner) matches the **domain owner** (Search Console). Different emails break this chain of trust and make domain verification impossible even if DNS access were available.
 
-- Google's verification process checks that the **app developer** (Cloud Console owner) matches the **domain owner** (verified in Search Console). Using different emails breaks this chain of trust.
-- Cannot transfer OAuth credentials between Google accounts without recreating the project.
+### Fixes Applied
+
+| Fix | Status | What It Does |
+|-----|--------|-------------|
+| Static `privacy.html` in `frontend/public/` | ✅ Deployed | Google's crawler can now read the full privacy policy at `/privacy.html` without JavaScript |
+| Static `terms.html` in `frontend/public/` | ✅ Deployed | Terms of Service also crawler-readable |
+| `_redirects` file for Render SPA routing | ✅ Deployed | Angular deep links (`/inbox`, `/privacy`, etc.) now work on direct navigation |
+| Backend `/privacy` and `/terms` endpoints | ✅ Deployed | Privacy policy also served from `ai-inbox-backend.onrender.com/privacy` as plain HTML |
+
+### What Still Needs to Be Done (Not Possible Without Custom Domain)
+
+1. **Use a custom domain** (e.g., `ai-inbox-helper.com`) instead of Render's subdomain
+2. Point DNS to Render and verify domain ownership in Google Search Console
+3. Ensure the Google Cloud Console project owner email matches the domain registrant
+4. Wait 24 hours for DNS propagation, then re-submit for production approval
+
+### Current Workaround
+To add a test user:
+1. Go to [Google Cloud Console → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+2. Click **"Test users"** → **"+ Add Users"**
+3. Enter the email address → Save
+4. That user can now connect Gmail in the app
+
+---
+
+## 🔴 Issue #2: Email Account Mismatch Across Services
+
+### Problem
+The Google Cloud Console project was created with **one Gmail account**, while GitHub and Render use a **different Gmail account**. This created a chain-of-trust problem:
+
+```
+Google Cloud Console (Email A)
+    ↓ owns OAuth credentials
+    ↓ must verify domain ownership
+    
+Google Search Console (Email A tries to verify)
+    ↓ but the deployed site is on Render
+    
+Render + GitHub (Email B)
+    ↓ controls the deployment
+    ↗ Email A cannot verify Email B's deployment
+```
+
+### Impact
+- Cannot verify domain ownership because the Cloud Console owner isn't the same as the deployment account
+- Cannot transfer Google Cloud projects between accounts without recreating all credentials
+- The OAuth `client_id` and `client_secret` are tied to Email A's project
 
 ### Lesson Learned
-
-> Always use the **same Google account** for Cloud Console, domain registration, and deployment platform sign-up when building apps that require OAuth verification.
+> **Always use the same Google account** for Cloud Console, GitHub, domain registration, and deployment platform. Set this up before starting development.
 
 ---
 
-## 3. Render Free-Tier Cold Start (🟡 Performance)
+## 🟡 Issue #3: Render Free-Tier Cold Start Delays
 
 ### Problem
-
-Render's free tier **spins down** the backend service after 15 minutes of inactivity. The first request after a cold start takes **30–50 seconds** to respond.
+Render's free tier **spins down** the backend service after 15 minutes of inactivity. First request after idle takes **30–50 seconds**.
 
 ### Impact
-
-- Gmail sync may time out on first attempt after idle period
-- OAuth callback may fail if the backend hasn't woken up in time
-- Users see a blank/loading screen while the backend starts
+- Gmail OAuth callback may time out if backend hasn't woken up
+- First sync attempt may fail
+- Users see loading/blank screen on first visit
 
 ### Workaround
-
-- The app shows loading indicators while waiting
-- Users may need to refresh and retry after the first cold-start load
-
----
-
-## 4. Cross-Origin Cookie Blocking (🟢 Resolved)
-
-### Problem
-
-OAuth flow originally relied on cookies to pass state between the frontend (`ai-inbox-frontend.onrender.com`) and backend (`ai-inbox-backend.onrender.com`). Modern browsers block cross-origin cookies by default.
-
-### Fix Applied
-
-Replaced cookie-based state verification with a **server-side state map**. The OAuth state parameter is stored in memory on the backend and validated during the callback — no cookies needed.
-
-### Remaining Risk
-
-The in-memory state map is lost when the backend restarts (Render free-tier redeploys). This is acceptable for a demo/internship project but would need Redis or database-backed sessions in production.
+- App shows loading indicators
+- Users may need to refresh after initial cold-start load
+- Gmail auto-sync retry handles transient failures
 
 ---
 
-## 5. Gmail API Scope Limitations (🟡 By Design)
+## 🟡 Issue #4: Gmail Read-Only Scope (By Design)
 
 ### Current Scopes
-
 ```
 openid
 https://www.googleapis.com/auth/userinfo.email
@@ -137,47 +119,65 @@ https://www.googleapis.com/auth/gmail.readonly
 ```
 
 ### What This Means
-
-- The app can **read** emails but **cannot send, delete, or modify** them
-- Outbox messages are stored locally in PostgreSQL, not sent via Gmail
-- This is intentional for security — requesting `gmail.send` or `gmail.modify` would require stricter Google verification
+- App can **read** emails but **cannot send, delete, or modify** them via Gmail API
+- Outbox messages are stored in PostgreSQL, not sent through Gmail
+- This was an intentional security decision — requesting `gmail.send` would require even stricter Google verification
 
 ---
 
-## 6. Angular SPA Routing on Static Hosting (🟡 Deployment)
+## 🟢 Issue #5: Cross-Origin Cookie Blocking (RESOLVED)
 
 ### Problem
+OAuth flow originally used cookies to pass state between frontend (`ai-inbox-frontend.onrender.com`) and backend (`ai-inbox-backend.onrender.com`). Modern browsers block third-party cookies by default.
 
-Angular is a Single Page Application — all routes (`/inbox`, `/privacy`, `/settings`, etc.) are handled client-side by JavaScript. When a user directly navigates to `https://ai-inbox-frontend.onrender.com/privacy`, the server looks for a `/privacy` file, doesn't find one, and returns 404.
+### Fix
+Replaced cookie-based state with a **server-side state map**. OAuth state parameter stored in backend memory and validated during callback.
 
-### Impact
+### Remaining Risk
+In-memory state map is lost on backend restart (Render free-tier redeployment). Acceptable for demo project; production would need Redis-backed sessions.
 
-- Google's crawler cannot access the privacy policy page (it doesn't execute JavaScript)
-- Direct URL sharing of specific pages may fail
-- This directly contributed to the OAuth verification failure
+---
 
-### Fix Needed
+## 🟢 Issue #6: Angular SPA Routing on Render (RESOLVED)
 
-Add a `_redirects` file to the build output:
+### Problem
+Direct navigation to `https://ai-inbox-frontend.onrender.com/inbox` returned 404 because Render looked for a `/inbox` file instead of serving `index.html`.
+
+### Fix
+Added `_redirects` file:
 ```
 /*    /index.html   200
 ```
-
-This tells Render to serve `index.html` for all routes, letting Angular handle routing client-side.
-
----
-
-## Summary Table
-
-| Issue | Severity | Status | Blocker? |
-|-------|----------|--------|----------|
-| OAuth stuck in Testing mode | 🔴 Critical | Unresolved | Yes — limits who can use the app |
-| Email account mismatch | 🟡 Medium | Unresolved | Yes — blocks production approval |
-| Render cold start | 🟡 Medium | Accepted | No — expected on free tier |
-| Cross-origin cookies | 🟢 Low | **Resolved** | No |
-| Gmail read-only scope | 🟡 Medium | By Design | No |
-| SPA routing on static host | 🟡 Medium | Unresolved | Yes — blocks Google crawler |
+Render now serves `index.html` for all routes, and Angular's router handles client-side navigation. Static files like `privacy.html` and `terms.html` are served directly (Render checks for actual files before applying the rewrite).
 
 ---
 
-*Generated: October 29, 2026*
+## Summary
+
+| # | Issue | Severity | Status | Root Cause |
+|---|-------|----------|--------|------------|
+| 1 | OAuth stuck in Testing mode | 🔴 Critical | **Unresolved** — needs custom domain | Can't verify Render subdomain ownership |
+| 2 | Email account mismatch | 🔴 Critical | **Unresolved** — architectural | Different accounts for Cloud Console vs GitHub/Render |
+| 3 | Render cold start | 🟡 Medium | **Accepted** | Free-tier limitation |
+| 4 | Gmail read-only scope | 🟡 Medium | **By Design** | Intentional security decision |
+| 5 | Cross-origin cookies | 🟢 Resolved | **Fixed** | Server-side state map |
+| 6 | SPA routing on Render | 🟢 Resolved | **Fixed** | `_redirects` file |
+
+---
+
+## How to Fix Issue #1 (For Future Reference)
+
+If you want to move the app to production:
+
+1. **Buy a custom domain** (e.g., from Namecheap, Google Domains)
+2. **Point DNS to Render** following [Render's custom domain guide](https://render.com/docs/custom-domains)
+3. **Verify the domain** in [Google Search Console](https://search.google.com/search-console) using DNS TXT record
+4. **Update OAuth consent screen** home page URL to the custom domain
+5. **Update privacy policy URL** to point to the custom domain
+6. **Wait 24 hours** for Google to re-crawl
+7. **Re-submit** the OAuth consent screen for production verification
+
+---
+
+*Document created: October 29, 2026*
+*Last commit: `1b428b5` — static privacy/terms pages + backend legal endpoints*
