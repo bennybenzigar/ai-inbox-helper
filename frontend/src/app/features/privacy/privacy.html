@@ -1,0 +1,91 @@
+<section class="page legal-page">
+  <article class="panel legal-panel">
+    <div class="legal-header">
+      <div class="badge">Legal & Compliance</div>
+      <h1>Privacy Policy — AI Inbox Helper</h1>
+      <p class="updated">Last Updated: {{ lastUpdated }}</p>
+    </div>
+
+    <div class="legal-body">
+      <div class="highlight-box">
+        <strong>Google API Services User Data Policy Compliance:</strong><br />
+        AI Inbox Helper's use and transfer to any other app of information received from Google APIs adheres to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">
+          Google API Services User Data Policy
+        </a>, including the <strong>Limited Use</strong> requirements.
+      </div>
+
+      <h2>1. Introduction</h2>
+      <p>
+        AI Inbox Helper ("we", "our", or "the application") is a recruitment productivity platform that assists recruiters in categorizing candidate emails, drafting suggested replies, monitoring recruitment pipeline bottlenecks, and analyzing attendance patterns. We are committed to protecting your privacy and maintaining the security of any data you share with us.
+      </p>
+
+      <h2>2. Information We Access and Collect</h2>
+      <p>When you choose to connect your Google account or upload data into AI Inbox Helper, we collect and process the following information:</p>
+      <ul>
+        <li>
+          <strong>Google Account Profile & Email:</strong> When you authenticate via Google OAuth 2.0, we access your email address and basic profile information under the <code>openid</code> and <code>email</code> scopes to identify your connected mailbox.
+        </li>
+        <li>
+          <strong>Gmail Messages & Metadata:</strong> Under the <code>https://www.googleapis.com/auth/gmail.readonly</code> scope, we access incoming candidate emails (sender name, sender email, subject, timestamp, body text, and attachment presence) for the sole purpose of displaying candidate inquiries in your inbox.
+        </li>
+        <li>
+          <strong>Gmail Message Sending:</strong> Under the <code>https://www.googleapis.com/auth/gmail.send</code> scope, when you explicitly click "Send" on an approved draft, the application dispatches your approved message directly to the recipient via your authenticated account.
+        </li>
+        <li>
+          <strong>Recruiter-Uploaded Timesheets and Pipeline CSVs:</strong> Work hours, leave records, and candidate board statuses uploaded to the Attendance Pattern Checker and Stall Alerter modules.
+        </li>
+      </ul>
+
+      <h2>3. How We Use Your Information</h2>
+      <p>We use your information exclusively to provide and improve the recruitment workflows within the application:</p>
+      <ul>
+        <li><strong>Intent Classification:</strong> Incoming candidate emails are categorized into 6 operational intents (Interview Scheduling, Application Status, Salary & Compensation, Document Requests, Job Details, and Other / Unclear).</li>
+        <li><strong>AI Response Drafting:</strong> We pass candidate message text to Google Gemini AI (<code>gemini-2.5-flash</code>) to generate concise, professional reply suggestions for your review.</li>
+        <li><strong>Human-in-the-Loop Review:</strong> AI drafts are displayed for human recruiters to review, edit, approve, or reject. <strong>No email is ever sent automatically without explicit recruiter approval.</strong></li>
+        <li><strong>Outbox Auditing:</strong> Recording approved and sent candidate communications so your team maintains visibility over recruiter outreach.</li>
+      </ul>
+
+      <h2>4. Google Limited Use Disclosure & AI Model Training</h2>
+      <p>In accordance with Google's Limited Use requirements:</p>
+      <ul>
+        <li>We <strong>NEVER</strong> use Google user data (including email content or metadata) to train generalized artificial intelligence (AI) or machine learning (ML) models.</li>
+        <li>We <strong>NEVER</strong> sell Google user data to data brokers, advertising networks, or any third parties.</li>
+        <li>We <strong>NEVER</strong> use or transfer Google user data for serving personalized, retargeted, or interest-based advertisements.</li>
+        <li>We do not allow humans to read your private email messages unless: (a) you explicitly approve a message in the review interface, (b) you provide explicit consent for technical troubleshooting, or (c) required by applicable law.</li>
+      </ul>
+
+      <h2>5. Data Storage, Security & Retention</h2>
+      <p>
+        All data is encrypted in transit using Transport Layer Security (HTTPS/TLS) and stored securely in a managed PostgreSQL database. Google OAuth refresh tokens are stored in the server's restricted connection metadata store and are never exposed to client-side scripts or third parties.
+      </p>
+
+      <h2>6. Data Deletion and Revocation of Access</h2>
+      <p>You have full control over your data at all times:</p>
+      <ul>
+        <li><strong>Disconnect Gmail:</strong> Navigate to the <em>Gmail Connection</em> page and click "Disconnect" at any time. This immediately wipes your stored OAuth tokens from our database.</li>
+        <li><strong>Revoke via Google Account:</strong> You can revoke AI Inbox Helper's access at any time via your
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">
+            Google Account Third-party apps settings
+          </a>.
+        </li>
+        <li><strong>Factory Reset / Data Purge:</strong> Go to <em>Settings</em> &gt; <em>Data Management</em> and select "Clear all messages" or "Factory reset" to permanently delete all messages, drafts, audit logs, timesheets, and candidate alerts from our database.</li>
+      </ul>
+
+      <h2>7. Contact Information</h2>
+      <p>
+        If you have questions regarding this Privacy Policy or wish to request data deletion, contact us at:
+        <br />
+        <strong>Email:</strong> <a href="mailto:bennybenzigar@gmail.com">bennybenzigar@gmail.com</a>
+        <br />
+        <strong>Application URL:</strong> <a href="https://ai-inbox-frontend.onrender.com">https://ai-inbox-frontend.onrender.com</a>
+      </p>
+    </div>
+
+    <div class="legal-footer">
+      <a routerLink="/dashboard" class="btn">← Return to Dashboard</a>
+      <a routerLink="/terms" class="btn secondary">Terms of Service →</a>
+    </div>
+  </article>
+</section>
+

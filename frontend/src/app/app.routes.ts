@@ -55,5 +55,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/settings/settings").then((m) => m.Settings),
   },
+  {
+    path: "privacy",
+    loadComponent: () =>
+      import("./features/privacy/privacy").then((m) => m.PrivacyComponent),
+  },
+  {
+    path: "terms",
+    loadComponent: () =>
+      import("./features/terms/terms").then((m) => m.TermsComponent),
+  },
   { path: "**", redirectTo: "dashboard" },
 ];

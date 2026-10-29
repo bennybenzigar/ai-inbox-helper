@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { PaginationService } from '../../core/services/pagination.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -8,7 +9,7 @@ import { ConfirmModal } from '../../shared/components/confirm-modal/confirm-moda
 @Component({
   standalone: true,
   selector: 'app-settings',
-  imports: [FormsModule, ConfirmModal],
+  imports: [FormsModule, RouterLink, ConfirmModal],
   templateUrl: './settings.html',
   styleUrl: './settings.scss'
 })

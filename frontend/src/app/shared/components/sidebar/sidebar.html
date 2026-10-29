@@ -20,9 +20,18 @@
       ><span>⚠</span><label>Stall Alerter</label></a
     ><a routerLink="/settings" routerLinkActive="active"
       ><span>⚙</span><label>Settings</label></a
+    ><a routerLink="/privacy" routerLinkActive="active"
+      ><span>🔒</span><label>Privacy Policy</label></a
     >
   </nav>
   <div class="sidebar-foot">
-    <span class="online-dot"></span><span>Live candidate workspace</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="online-dot"></span><span>Live candidate workspace</span>
+    </div>
+    <div class="legal-links" style="margin-top:6px;font-size:10px;display:flex;gap:8px">
+      <a routerLink="/privacy" style="color:#8794a6;text-decoration:none">Privacy</a>
+      <span style="color:#8794a6">·</span>
+      <a routerLink="/terms" style="color:#8794a6;text-decoration:none">Terms</a>
+    </div>
   </div>
 </aside>
