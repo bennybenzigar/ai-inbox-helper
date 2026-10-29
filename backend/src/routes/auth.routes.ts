@@ -52,13 +52,14 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const state = String(req.query.state ?? '');
-  const cookie = String(req.cookies?.gmail_oauth_state ?? '');
   const expiry = oauthStates.get(state);
   oauthStates.delete(state);
   res.clearCookie('gmail_oauth_state');
 
-  if (!state || !cookie || state !== cookie || !expiry || expiry < Date.now()) {
-    return res.status(400).send('OAuth state validation failed. Please reconnect Gmail.');
+  // Validate state exists in server-side map (cookie check is optional — cookies
+  // are often blocked across origins on deployed services like Render)
+  if (!state || !expiry || expiry < Date.now()) {
+    return res.status(400).send('OAuth state validation failed. The link may have expired — please reconnect Gmail.');
   }
   if (req.query.error) {
     return res.redirect(getFrontendUrl('/gmail-connection?error=oauth_denied'));
