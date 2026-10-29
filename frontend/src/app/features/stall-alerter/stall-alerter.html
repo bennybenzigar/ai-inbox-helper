@@ -198,19 +198,20 @@
             </tbody>
           </table>
         </div>
-
-        <app-paginator
-          [page]="page()"
-          [total]="filteredAlerts().length"
-          [perPage]="pager.pageSize()"
-          (pageChange)="page.set($event)" />
-
       }@else{
         <div class="empty">
           <div class="empty-icon">✓</div>
           <h4>No stalled candidates for selected filter</h4>
           <p>All candidates are moving through the hiring funnel.</p>
         </div>
+      }
+
+      @if(filteredAlerts().length > 0){
+        <app-paginator
+          [page]="page()"
+          [total]="filteredAlerts().length"
+          [perPage]="pager.pageSize()"
+          (pageChange)="page.set($event)" />
       }
     </div>
   }
