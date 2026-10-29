@@ -83,6 +83,14 @@ export class AttendanceComponent {
     const reader = new FileReader();
     reader.onload = () => {
       const csv = reader.result as string;
+      if (!csv || !csv.trim()) {
+        const err = 'Selected CSV file is empty. Please upload a file with valid attendance records.';
+        this.analysis.set(null);
+        this.notice.set(err);
+        this.toast.error(err);
+        input.value = '';
+        return;
+      }
       this.busy.set(true);
       this.api.analyzeAttendance(csv).subscribe({
         next: (res) => {
@@ -94,9 +102,10 @@ export class AttendanceComponent {
           this.toast.success(msg);
           input.value = '';
         },
-        error: () => {
+        error: (errRes) => {
           this.busy.set(false);
-          const err = 'Failed to parse CSV. Required columns: employee_id, employee_name, date, hours_worked, leave_type.';
+          this.analysis.set(null);
+          const err = errRes?.error?.error || 'Failed to parse CSV. Empty files or title-only files are not allowed. Required columns: employee_id, employee_name, date, hours_worked, leave_type.';
           this.notice.set(err);
           this.toast.error(err);
           input.value = '';

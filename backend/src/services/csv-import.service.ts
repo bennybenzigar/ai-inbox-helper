@@ -48,10 +48,22 @@ export function parseCandidateMessagesCSV(csvText: string): CSVMessageRow[] {
 
     if (cols.length < 2) continue;
 
-    const senderName = (nameIdx !== -1 ? cols[nameIdx] : cols[0]) || 'Applicant';
-    const senderEmail = (emailIdx !== -1 ? cols[emailIdx] : cols[1]) || 'applicant@example.com';
-    const subject = (subjectIdx !== -1 ? cols[subjectIdx] : cols[2]) || 'Job Application';
-    const body = (bodyIdx !== -1 ? cols[bodyIdx] : cols[3]) || subject;
+    // Skip empty rows (e.g. ",,,,")
+    if (cols.every((c) => !c)) continue;
+
+    const rawName = (nameIdx !== -1 ? cols[nameIdx] : cols[0])?.trim() ?? '';
+    const rawEmail = (emailIdx !== -1 ? cols[emailIdx] : cols[1])?.trim() ?? '';
+    const rawSubject = (subjectIdx !== -1 ? cols[subjectIdx] : cols[2])?.trim() ?? '';
+    const rawBody = (bodyIdx !== -1 ? cols[bodyIdx] : cols[3])?.trim() ?? '';
+
+    // Disallow rows where essential data is absent
+    if (!rawName && !rawEmail) continue;
+    if (!rawSubject && !rawBody) continue;
+
+    const senderName = (rawName || rawEmail).replace(/^["']|["']$/g, '');
+    const senderEmail = (rawEmail || 'applicant@example.com').replace(/^["']|["']$/g, '');
+    const subject = (rawSubject || rawBody).replace(/^["']|["']$/g, '');
+    const body = (rawBody || rawSubject).replace(/^["']|["']$/g, '');
 
     rows.push({
       senderName: senderName.replace(/^["']|["']$/g, ''),

@@ -88,17 +88,31 @@ export function parseHiringBoardCSV(csvText: string): CandidateBoardRow[] {
     const row = rawLine.trim();
     if (!row) continue;
     const cols = row.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-    if (cols.length < 4) continue;
+    if (cols.length < 2) continue;
 
-    const candidateId = (idIdx !== -1 ? cols[idIdx] : cols[0]) || `CAN-${i}`;
-    const candidateName = (nameIdx !== -1 ? cols[nameIdx] : cols[1]) || 'Unknown Candidate';
-    const candidateEmail = (emailIdx !== -1 ? cols[emailIdx] : cols[2]) || 'candidate@example.com';
-    const role = (roleIdx !== -1 ? cols[roleIdx] : cols[3]) || 'Software Engineer';
-    const stage = ((stageIdx !== -1 ? cols[stageIdx] : cols[4]) || 'Screening') as CandidateBoardRow['stage'];
-    const rawDays = daysIdx !== -1 ? cols[daysIdx] : cols[5];
-    const daysInStage = parseInt(rawDays ?? '0', 10) || 0;
-    const lastActivityDate = (lastActIdx !== -1 ? cols[lastActIdx] : cols[6]) || new Date().toISOString().slice(0, 10);
-    const assignedRecruiter = (recruiterIdx !== -1 ? cols[recruiterIdx] : cols[7]) || 'Unassigned';
+    // Skip empty rows (e.g. ",,,,")
+    if (cols.every((c) => !c)) continue;
+
+    const rawId = (idIdx !== -1 ? cols[idIdx] : cols[0])?.trim() ?? '';
+    const rawName = (nameIdx !== -1 ? cols[nameIdx] : cols[1])?.trim() ?? '';
+    const rawEmail = (emailIdx !== -1 ? cols[emailIdx] : cols[2])?.trim() ?? '';
+    const rawRole = (roleIdx !== -1 ? cols[roleIdx] : cols[3])?.trim() ?? '';
+    const rawStage = (stageIdx !== -1 ? cols[stageIdx] : cols[4])?.trim() ?? '';
+    const rawDays = (daysIdx !== -1 ? cols[daysIdx] : cols[5])?.trim() ?? '';
+    const rawLastAct = (lastActIdx !== -1 ? cols[lastActIdx] : cols[6])?.trim() ?? '';
+    const rawRecruiter = (recruiterIdx !== -1 ? cols[recruiterIdx] : cols[7])?.trim() ?? '';
+
+    // Disallow rows where candidate identity is absent
+    if (!rawName && !rawEmail && !rawId) continue;
+
+    const candidateId = rawId || (rawName ? `CAN-${rawName.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : `CAN-${i}`);
+    const candidateName = rawName || rawEmail || candidateId;
+    const candidateEmail = rawEmail || 'candidate@example.com';
+    const role = rawRole || 'Software Engineer';
+    const stage = (rawStage || 'Screening') as CandidateBoardRow['stage'];
+    const daysInStage = parseInt(rawDays || '0', 10) || 0;
+    const lastActivityDate = rawLastAct || new Date().toISOString().slice(0, 10);
+    const assignedRecruiter = rawRecruiter || 'Unassigned';
 
     rows.push({
       candidateId,

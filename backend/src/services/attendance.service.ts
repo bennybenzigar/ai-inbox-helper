@@ -51,14 +51,27 @@ export function parseAttendanceCSV(csvText: string): AttendanceRecord[] {
     const row = rawLine.trim();
     if (!row) continue;
     const cols = row.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-    if (cols.length < 3) continue;
+    if (cols.length < 2) continue;
 
-    const employeeId = (idIdx !== -1 ? cols[idIdx] : cols[0]) || `EMP-${i}`;
-    const employeeName = (nameIdx !== -1 ? cols[nameIdx] : cols[1]) || 'Unknown Employee';
-    const date = (dateIdx !== -1 ? cols[dateIdx] : cols[2]) || new Date().toISOString().slice(0, 10);
-    const rawHours = hoursIdx !== -1 ? cols[hoursIdx] : cols[3];
-    const hoursWorked = parseFloat(rawHours ?? '0') || 0;
-    const leaveType = (leaveIdx !== -1 ? cols[leaveIdx] : cols[4]) || 'None';
+    // Skip empty rows (e.g. ",,,,")
+    if (cols.every((c) => !c)) continue;
+
+    const rawId = (idIdx !== -1 ? cols[idIdx] : cols[0])?.trim() ?? '';
+    const rawName = (nameIdx !== -1 ? cols[nameIdx] : cols[1])?.trim() ?? '';
+    const rawDate = (dateIdx !== -1 ? cols[dateIdx] : cols[2])?.trim() ?? '';
+    const rawHours = (hoursIdx !== -1 ? cols[hoursIdx] : cols[3])?.trim() ?? '';
+    const rawLeave = (leaveIdx !== -1 ? cols[leaveIdx] : cols[4])?.trim() ?? '';
+
+    // Disallow rows with empty essential data: must have employee ID or Name
+    if (!rawId && !rawName) continue;
+    // Must also have some record data (date, hours, or leave)
+    if (!rawDate && !rawHours && !rawLeave) continue;
+
+    const employeeId = rawId || (rawName ? `EMP-${rawName.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : `EMP-${i}`);
+    const employeeName = rawName || rawId;
+    const date = rawDate || new Date().toISOString().slice(0, 10);
+    const hoursWorked = parseFloat(rawHours || '0') || 0;
+    const leaveType = rawLeave || 'None';
 
     records.push({
       employeeId,

@@ -396,8 +396,16 @@ router.post('/drafts/:id/send', async (req, res, next) => {
 });
 
 router.post('/tools/attendance/analyze', (req, res) => {
-  const csv = req.body?.csv || generateSampleAttendanceCSV();
+  const csv = req.body?.csv;
+  if (typeof csv !== 'string' || !csv.trim()) {
+    return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+  }
   const records = parseAttendanceCSV(csv);
+  if (records.length === 0) {
+    return res.status(400).json({
+      error: 'CSV contains no valid attendance data. Empty files, title-only files, or blank rows are not allowed.'
+    });
+  }
   const result = analyzeAttendance(records);
   res.json(result);
 });
@@ -410,9 +418,17 @@ router.get('/tools/attendance/sample', (_req, res) => {
 });
 
 router.post('/tools/stall-alerter/analyze', (req, res) => {
-  const csv = req.body?.csv || generateSampleHiringBoardCSV();
+  const csv = req.body?.csv;
+  if (typeof csv !== 'string' || !csv.trim()) {
+    return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+  }
   const thresholdDays = parseInt(req.body?.thresholdDays, 10) || 5;
   const rows = parseHiringBoardCSV(csv);
+  if (rows.length === 0) {
+    return res.status(400).json({
+      error: 'CSV contains no valid candidate data. Empty files, title-only files, or blank rows are not allowed.'
+    });
+  }
   const result = analyzeStalledCandidates(rows, thresholdDays);
   res.json(result);
 });

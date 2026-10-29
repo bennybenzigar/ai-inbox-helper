@@ -81,6 +81,13 @@ export class Dashboard implements OnInit, OnDestroy {
     const reader = new FileReader();
     reader.onload = () => {
       const csv = reader.result as string;
+      if (!csv || !csv.trim()) {
+        const msg = "Selected CSV file is empty. Please upload a file with valid candidate messages.";
+        this.message.set(msg);
+        this.toast.error(msg);
+        input.value = "";
+        return;
+      }
       this.uploading.set(true);
       this.api.uploadMessagesCSV(csv).subscribe({
         next: (res) => {

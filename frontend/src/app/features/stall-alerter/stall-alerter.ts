@@ -95,6 +95,14 @@ export class StallAlerterComponent {
     const reader = new FileReader();
     reader.onload = () => {
       const csv = reader.result as string;
+      if (!csv || !csv.trim()) {
+        const err = 'Selected CSV file is empty. Please upload a file with valid candidate records.';
+        this.analysis.set(null);
+        this.notice.set(err);
+        this.toast.error(err);
+        input.value = '';
+        return;
+      }
       this.busy.set(true);
       this.api.analyzeStallAlerter(csv, this.thresholdDays()).subscribe({
         next: (res) => {
@@ -106,9 +114,10 @@ export class StallAlerterComponent {
           this.toast.success(msg);
           input.value = '';
         },
-        error: () => {
+        error: (errRes) => {
           this.busy.set(false);
-          const err = 'Failed to parse CSV. Required columns: candidate_name, role, stage, days_in_stage, assigned_recruiter.';
+          this.analysis.set(null);
+          const err = errRes?.error?.error || 'Failed to parse CSV. Empty files or title-only files are not allowed. Required columns: candidate_name, role, stage, days_in_stage, assigned_recruiter.';
           this.notice.set(err);
           this.toast.error(err);
           input.value = '';

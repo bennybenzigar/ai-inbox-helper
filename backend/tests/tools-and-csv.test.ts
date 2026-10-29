@@ -100,6 +100,33 @@ test('Option B Attendance Checker: flags overtime, missing hours, and consecutiv
   }
 });
 
+test('Attendance CSV parser: rejects empty files, title-only files, and blank comma rows', () => {
+  const titleOnly = `employee_id,employee_name,date,hours_worked,leave_type`;
+  assert.equal(parseAttendanceCSV(titleOnly).length, 0);
+
+  const titleWithEmptyRows = `employee_id,employee_name,date,hours_worked,leave_type\n,,,,\n,,,,\n, , , , `;
+  assert.equal(parseAttendanceCSV(titleWithEmptyRows).length, 0);
+
+  const emptyString = '';
+  assert.equal(parseAttendanceCSV(emptyString).length, 0);
+});
+
+test('Stall Alerter CSV parser: rejects empty files, title-only files, and blank comma rows', () => {
+  const titleOnly = `candidate_id,candidate_name,candidate_email,role,stage,days_in_stage,last_activity_date,assigned_recruiter`;
+  assert.equal(parseHiringBoardCSV(titleOnly).length, 0);
+
+  const titleWithEmptyRows = `${titleOnly}\n,,,,,,,\n,,,,,,,\n, , , , , , , `;
+  assert.equal(parseHiringBoardCSV(titleWithEmptyRows).length, 0);
+});
+
+test('Candidate Messages CSV parser: rejects empty files, title-only files, and blank comma rows', () => {
+  const titleOnly = `senderName,senderEmail,subject,body`;
+  assert.equal(parseCandidateMessagesCSV(titleOnly).length, 0);
+
+  const titleWithEmptyRows = `senderName,senderEmail,subject,body\n,,,\n,,,\n, , , `;
+  assert.equal(parseCandidateMessagesCSV(titleWithEmptyRows).length, 0);
+});
+
 test('Option C Stall Alerter: prioritizes stalled candidates by stage weight and days', () => {
   const sample = generateSampleHiringBoardCSV();
   const candidates = parseHiringBoardCSV(sample);

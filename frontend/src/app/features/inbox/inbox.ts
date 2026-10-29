@@ -185,6 +185,11 @@ export class Inbox implements OnInit, OnDestroy {
     const reader = new FileReader();
     reader.onload = () => {
       const csvText = reader.result as string;
+      if (!csvText || !csvText.trim()) {
+        this.toast.error('Selected CSV file is empty. Please upload a file with valid candidate messages.');
+        input.value = '';
+        return;
+      }
       this.busy.set(true);
       this.api.uploadMessagesCSV(csvText).subscribe({
         next: (res) => {
