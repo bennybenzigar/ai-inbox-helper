@@ -212,14 +212,5 @@ export function analyzeAttendance(records: AttendanceRecord[]): AttendanceAnalys
 }
 
 export function generateSampleAttendanceCSV(): string {
-  return `employee_id,employee_name,date,hours_worked,leave_type
-EMP-101,Amina Chen,2026-10-19,8.5,None
-EMP-101,Amina Chen,2026-10-20,13.5,None
-EMP-101,Amina Chen,2026-10-21,0.0,Sick Leave
-EMP-101,Amina Chen,2026-10-22,0.0,Sick Leave
-EMP-101,Amina Chen,2026-10-23,0.0,Sick Leave
-EMP-102,David Miller,2026-10-19,0.0,None
-EMP-102,David Miller,2026-10-20,4.0,None
-EMP-103,Priya Sharma,2026-10-24,6.0,None
-`;
+  return `employee_id,employee_name,date,hours_worked,leave_type`;
 }

@@ -137,11 +137,5 @@ export async function importCandidateMessagesFromCSV(
 }
 
 export function generateSampleCandidateMessagesCSV(): string {
-  return `senderName,senderEmail,subject,body
-Ananya Roy,ananya.roy@example.com,Angular Developer Opening,"Hi, I saw the Senior Angular Engineer role and would like to know if remote work is supported."
-Tariq Vance,tariq.vance@example.com,Salary expectation,"Could you clarify the expected salary band and equity component for the Staff Backend position?"
-Elena Rostova,elena.rostova@example.com,Interview Availability,"I am confirmed for the technical interview this Thursday at 2 PM EST."
-David Miller,david.miller@example.com,Application Status Update,"Following up on my onsite interview last week for the DevOps Architect role."
-Priya Sharma,priya.sharma@example.com,Degree certificate and transcripts,"Please find my updated academic transcripts and reference letters as requested."
-`;
+  return `senderName,senderEmail,subject,body`;
 }

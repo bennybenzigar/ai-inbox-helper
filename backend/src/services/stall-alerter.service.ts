@@ -182,12 +182,5 @@ export function analyzeStalledCandidates(
 }
 
 export function generateSampleHiringBoardCSV(): string {
-  return `candidate_id,candidate_name,candidate_email,role,stage,days_in_stage,last_activity_date,assigned_recruiter
-CAN-101,Marcus Brody,marcus@example.com,Senior Full-Stack Engineer,Offer Sent,7,2026-10-21,Sarah Jenkins
-CAN-102,Elena Rostova,elena@example.com,Frontend Specialist,Technical Interview,6,2026-10-22,Sarah Jenkins
-CAN-103,Liam Patel,liam@example.com,DevOps Architect,Screening,8,2026-10-20,Alex Rivera
-CAN-104,Chloe Bennett,chloe@example.com,Product Designer,Final Round,5,2026-10-23,Alex Rivera
-CAN-105,Noah Kim,noah@example.com,Backend Engineer,Hiring Manager Review,9,2026-10-19,Sarah Jenkins
-CAN-106,Avery Martinez,avery@example.com,Data Scientist,Applied,2,2026-10-26,Alex Rivera
-`;
+  return `candidate_id,candidate_name,candidate_email,role,stage,days_in_stage,last_activity_date,assigned_recruiter`;
 }
