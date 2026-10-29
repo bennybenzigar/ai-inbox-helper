@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { PaginationService } from '../../core/services/pagination.service';
 import { Paginator } from '../../shared/components/paginator/paginator';
 import { LoadingSpinner } from '../../shared/components/loading-spinner/loading-spinner';
+import { ConfirmModal } from '../../shared/components/confirm-modal/confirm-modal';
 import { environment } from '../../../environments/environment';
 
 export interface AttendanceFlag {
@@ -36,7 +37,7 @@ export interface AttendanceAnalysis {
 @Component({
   standalone: true,
   selector: 'app-attendance',
-  imports: [CommonModule, FormsModule, Paginator, LoadingSpinner],
+  imports: [CommonModule, FormsModule, Paginator, LoadingSpinner, ConfirmModal],
   templateUrl: './attendance.html',
   styleUrl: './attendance.scss'
 })
@@ -52,6 +53,12 @@ export class AttendanceComponent {
   readonly selectedFilter = signal<string>('all');
   readonly page = signal(1);
   readonly sampleCsvUrl = `${environment.apiBaseUrl}/api/tools/attendance/sample`;
+
+  readonly selectedIds = signal<Set<string>>(new Set<string>());
+  readonly confirmModalOpen = signal(false);
+  readonly confirmModalTitle = signal('');
+  readonly confirmModalMessage = signal('');
+  private pendingDeleteIds: string[] = [];
 
   downloadSample(): void {
     this.api.downloadCsvFromUrl(this.sampleCsvUrl, 'attendance_sample.csv');
@@ -74,6 +81,111 @@ export class AttendanceComponent {
   onFilterChange(f: string): void {
     this.selectedFilter.set(f);
     this.page.set(1);
+    this.clearSelection();
+  }
+
+  isSelected(id: string): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  toggleSelect(id: string): void {
+    const next = new Set(this.selectedIds());
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    this.selectedIds.set(next);
+  }
+
+  isAllCurrentPageSelected(): boolean {
+    const paged = this.pagedFlags();
+    if (!paged.length) return false;
+    const current = this.selectedIds();
+    return paged.every((f) => current.has(f.id));
+  }
+
+  toggleSelectAll(): void {
+    const paged = this.pagedFlags();
+    if (!paged.length) return;
+    const next = new Set(this.selectedIds());
+    if (this.isAllCurrentPageSelected()) {
+      for (const f of paged) next.delete(f.id);
+    } else {
+      for (const f of paged) next.add(f.id);
+    }
+    this.selectedIds.set(next);
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set<string>());
+  }
+
+  promptDeleteSingle(flag: AttendanceFlag, event?: Event): void {
+    event?.stopPropagation();
+    this.pendingDeleteIds = [flag.id];
+    this.confirmModalTitle.set('Delete Attendance Flag');
+    this.confirmModalMessage.set(`Are you sure you want to delete the flag for "${flag.employeeName}" (${flag.flagType}) on ${flag.date}?`);
+    this.confirmModalOpen.set(true);
+  }
+
+  promptDeleteSelected(): void {
+    const count = this.selectedIds().size;
+    if (count === 0) return;
+    this.pendingDeleteIds = Array.from(this.selectedIds());
+    this.confirmModalTitle.set('Delete Selected Flags');
+    this.confirmModalMessage.set(`Are you sure you want to delete ${count} selected attendance flag${count > 1 ? 's' : ''}?`);
+    this.confirmModalOpen.set(true);
+  }
+
+  closeConfirmModal(): void {
+    this.confirmModalOpen.set(false);
+    this.pendingDeleteIds = [];
+  }
+
+  executeDelete(): void {
+    const data = this.analysis();
+    if (!data || this.pendingDeleteIds.length === 0) {
+      this.closeConfirmModal();
+      return;
+    }
+
+    const toDeleteSet = new Set(this.pendingDeleteIds);
+    const count = toDeleteSet.size;
+    const remainingFlags = data.flags.filter((f) => !toDeleteSet.has(f.id));
+
+    const newSummary = {
+      overtimeFlags: remainingFlags.filter((f) => f.flagType === 'Overtime').length,
+      missingHourFlags: remainingFlags.filter((f) => f.flagType === 'Missing Hours').length,
+      consecutiveLeaveFlags: remainingFlags.filter((f) => f.flagType === 'Consecutive Leave').length,
+      weekendWorkFlags: remainingFlags.filter((f) => f.flagType === 'Weekend Work').length,
+    };
+    const uniqueEmployees = new Set(remainingFlags.map((f) => f.employeeId)).size;
+
+    this.analysis.set({
+      ...data,
+      flags: remainingFlags,
+      flaggedCount: remainingFlags.length,
+      employeesAnalyzed: uniqueEmployees || (remainingFlags.length === 0 ? 0 : data.employeesAnalyzed),
+      summary: newSummary
+    });
+
+    // Remove from selection
+    const nextSelected = new Set(this.selectedIds());
+    for (const id of toDeleteSet) {
+      nextSelected.delete(id);
+    }
+    this.selectedIds.set(nextSelected);
+
+    // Adjust page if current page exceeds maximum
+    const remainingFiltered = this.filteredFlags().length;
+    const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
+    if (this.page() > maxPage) {
+      this.page.set(maxPage);
+    }
+
+    this.closeConfirmModal();
+    this.toast.success(`Deleted ${count} attendance flag${count > 1 ? 's' : ''}.`);
   }
 
   onFileSelected(event: Event): void {
@@ -86,6 +198,7 @@ export class AttendanceComponent {
       if (!csv || !csv.trim()) {
         const err = 'Selected CSV file is empty. Please upload a file with valid attendance records.';
         this.analysis.set(null);
+        this.clearSelection();
         this.notice.set(err);
         this.toast.error(err);
         input.value = '';
@@ -95,6 +208,7 @@ export class AttendanceComponent {
       this.api.analyzeAttendance(csv).subscribe({
         next: (res) => {
           this.analysis.set(res);
+          this.clearSelection();
           this.page.set(1);
           this.busy.set(false);
           const msg = `Analyzed ${res.totalRecords} records across ${res.employeesAnalyzed} employees (${res.flaggedCount} anomalies detected).`;
@@ -105,6 +219,7 @@ export class AttendanceComponent {
         error: (errRes) => {
           this.busy.set(false);
           this.analysis.set(null);
+          this.clearSelection();
           const err = errRes?.error?.error || 'Failed to parse CSV. Empty files or title-only files are not allowed. Required columns: employee_id, employee_name, date, hours_worked, leave_type.';
           this.notice.set(err);
           this.toast.error(err);

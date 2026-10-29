@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { PaginationService } from '../../core/services/pagination.service';
 import { Paginator } from '../../shared/components/paginator/paginator';
 import { LoadingSpinner } from '../../shared/components/loading-spinner/loading-spinner';
+import { ConfirmModal } from '../../shared/components/confirm-modal/confirm-modal';
 import { environment } from '../../../environments/environment';
 
 export interface StalledAlert {
@@ -38,7 +39,7 @@ export interface StallAnalysis {
 @Component({
   standalone: true,
   selector: 'app-stall-alerter',
-  imports: [CommonModule, FormsModule, Paginator, LoadingSpinner],
+  imports: [CommonModule, FormsModule, Paginator, LoadingSpinner, ConfirmModal],
   templateUrl: './stall-alerter.html',
   styleUrl: './stall-alerter.scss'
 })
@@ -55,6 +56,12 @@ export class StallAlerterComponent {
   readonly selectedUrgency = signal<string>('all');
   readonly page = signal(1);
   readonly sampleCsvUrl = `${environment.apiBaseUrl}/api/tools/stall-alerter/sample`;
+
+  readonly selectedIds = signal<Set<string>>(new Set<string>());
+  readonly confirmModalOpen = signal(false);
+  readonly confirmModalTitle = signal('');
+  readonly confirmModalMessage = signal('');
+  private pendingDeleteIds: string[] = [];
 
   downloadSample(): void {
     this.api.downloadCsvFromUrl(this.sampleCsvUrl, 'hiring_board_sample.csv');
@@ -77,15 +84,121 @@ export class StallAlerterComponent {
   onUrgencyChange(u: string): void {
     this.selectedUrgency.set(u);
     this.page.set(1);
+    this.clearSelection();
   }
 
   onThresholdChange(days: number): void {
     this.thresholdDays.set(days);
+    this.clearSelection();
     // Re-analyze with same CSV if already loaded
     const data = this.analysis();
     if (data) {
       this.notice.set('Change threshold and re-upload CSV to reanalyze.');
     }
+  }
+
+  isSelected(id: string): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  toggleSelect(id: string): void {
+    const next = new Set(this.selectedIds());
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    this.selectedIds.set(next);
+  }
+
+  isAllCurrentPageSelected(): boolean {
+    const paged = this.pagedAlerts();
+    if (!paged.length) return false;
+    const current = this.selectedIds();
+    return paged.every((a) => current.has(a.id));
+  }
+
+  toggleSelectAll(): void {
+    const paged = this.pagedAlerts();
+    if (!paged.length) return;
+    const next = new Set(this.selectedIds());
+    if (this.isAllCurrentPageSelected()) {
+      for (const a of paged) next.delete(a.id);
+    } else {
+      for (const a of paged) next.add(a.id);
+    }
+    this.selectedIds.set(next);
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set<string>());
+  }
+
+  promptDeleteSingle(alert: StalledAlert, event?: Event): void {
+    event?.stopPropagation();
+    this.pendingDeleteIds = [alert.id];
+    this.confirmModalTitle.set('Delete Stall Alert');
+    this.confirmModalMessage.set(`Are you sure you want to remove the stall alert for candidate "${alert.candidateName}" (${alert.role})?`);
+    this.confirmModalOpen.set(true);
+  }
+
+  promptDeleteSelected(): void {
+    const count = this.selectedIds().size;
+    if (count === 0) return;
+    this.pendingDeleteIds = Array.from(this.selectedIds());
+    this.confirmModalTitle.set('Delete Selected Alerts');
+    this.confirmModalMessage.set(`Are you sure you want to delete ${count} selected stall alert${count > 1 ? 's' : ''}?`);
+    this.confirmModalOpen.set(true);
+  }
+
+  closeConfirmModal(): void {
+    this.confirmModalOpen.set(false);
+    this.pendingDeleteIds = [];
+  }
+
+  executeDelete(): void {
+    const data = this.analysis();
+    if (!data || this.pendingDeleteIds.length === 0) {
+      this.closeConfirmModal();
+      return;
+    }
+
+    const toDeleteSet = new Set(this.pendingDeleteIds);
+    const count = toDeleteSet.size;
+    const remainingAlerts = data.alerts.filter((a) => !toDeleteSet.has(a.id));
+
+    // Re-rank remaining alerts sequentially
+    const reRanked = remainingAlerts.map((a, idx) => ({ ...a, priorityRank: idx + 1 }));
+
+    const newSummary = {
+      criticalCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'critical').length,
+      highCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'high').length,
+      mediumCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'medium').length,
+    };
+
+    this.analysis.set({
+      ...data,
+      alerts: reRanked,
+      stalledCount: reRanked.length,
+      summary: newSummary
+    });
+
+    // Remove from selection
+    const nextSelected = new Set(this.selectedIds());
+    for (const id of toDeleteSet) {
+      nextSelected.delete(id);
+    }
+    this.selectedIds.set(nextSelected);
+
+    // Adjust page if current page exceeds maximum
+    const remainingFiltered = this.filteredAlerts().length;
+    const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
+    if (this.page() > maxPage) {
+      this.page.set(maxPage);
+    }
+
+    this.closeConfirmModal();
+    this.toast.success(`Deleted ${count} stall alert${count > 1 ? 's' : ''}.`);
   }
 
   onFileSelected(event: Event): void {
@@ -98,6 +211,7 @@ export class StallAlerterComponent {
       if (!csv || !csv.trim()) {
         const err = 'Selected CSV file is empty. Please upload a file with valid candidate records.';
         this.analysis.set(null);
+        this.clearSelection();
         this.notice.set(err);
         this.toast.error(err);
         input.value = '';
@@ -107,6 +221,7 @@ export class StallAlerterComponent {
       this.api.analyzeStallAlerter(csv, this.thresholdDays()).subscribe({
         next: (res) => {
           this.analysis.set(res);
+          this.clearSelection();
           this.page.set(1);
           this.busy.set(false);
           const msg = `Analyzed ${res.totalCandidates} candidates — ${res.stalledCount} stalled pipeline candidates detected.`;
@@ -117,6 +232,7 @@ export class StallAlerterComponent {
         error: (errRes) => {
           this.busy.set(false);
           this.analysis.set(null);
+          this.clearSelection();
           const err = errRes?.error?.error || 'Failed to parse CSV. Empty files or title-only files are not allowed. Required columns: candidate_name, role, stage, days_in_stage, assigned_recruiter.';
           this.notice.set(err);
           this.toast.error(err);

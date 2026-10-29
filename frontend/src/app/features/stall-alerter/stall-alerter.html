@@ -114,11 +114,35 @@
         </div>
       </div>
 
+      @if(selectedIds().size > 0){
+        <div class="bulk-bar">
+          <div class="bulk-info">
+            <span class="bulk-count">{{selectedIds().size}}</span>
+            <span>alert{{selectedIds().size > 1 ? 's' : ''}} selected</span>
+          </div>
+          <div class="bulk-actions">
+            <button type="button" class="btn danger" (click)="promptDeleteSelected()">
+              🗑 Delete Selected ({{selectedIds().size}})
+            </button>
+            <button type="button" class="btn" (click)="clearSelection()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+
       @if(pagedAlerts().length){
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
+                <th class="col-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isAllCurrentPageSelected()"
+                    (change)="toggleSelectAll()"
+                    aria-label="Select all on this page" />
+                </th>
                 <th>Priority</th>
                 <th>Candidate</th>
                 <th>Role</th>
@@ -126,11 +150,19 @@
                 <th>Days Stalled</th>
                 <th>Recruiter</th>
                 <th>Recommended Action</th>
+                <th class="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               @for(alert of pagedAlerts();track alert.id){
-                <tr [class.critical-row]="alert.urgency === 'Critical'">
+                <tr [class.critical-row]="alert.urgency === 'Critical'" [class.selected-row]="isSelected(alert.id)">
+                  <td class="col-check">
+                    <input
+                      type="checkbox"
+                      [checked]="isSelected(alert.id)"
+                      (change)="toggleSelect(alert.id)"
+                      aria-label="Select alert" />
+                  </td>
                   <td>
                     <span class="rank-badge" [class]="alert.urgency.toLowerCase()">
                       #{{alert.priorityRank}}
@@ -150,6 +182,16 @@
                   <td><small class="recruiter">{{alert.assignedRecruiter}}</small></td>
                   <td class="action-cell">
                     <span class="action-text">{{alert.recommendedAction}}</span>
+                  </td>
+                  <td class="col-actions">
+                    <button
+                      type="button"
+                      class="btn-delete"
+                      (click)="promptDeleteSingle(alert, $event)"
+                      title="Delete alert"
+                      aria-label="Delete alert">
+                      🗑
+                    </button>
                   </td>
                 </tr>
               }
@@ -172,4 +214,13 @@
       }
     </div>
   }
+
+  <app-confirm-modal
+    [isOpen]="confirmModalOpen()"
+    [title]="confirmModalTitle()"
+    [message]="confirmModalMessage()"
+    [confirmText]="'Delete'"
+    [isDanger]="true"
+    (confirmed)="executeDelete()"
+    (cancelled)="closeConfirmModal()" />
 </section>

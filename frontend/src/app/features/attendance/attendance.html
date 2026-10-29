@@ -103,22 +103,54 @@
         </div>
       </div>
 
+      @if(selectedIds().size > 0){
+        <div class="bulk-bar">
+          <div class="bulk-info">
+            <span class="bulk-count">{{selectedIds().size}}</span>
+            <span>flag{{selectedIds().size > 1 ? 's' : ''}} selected</span>
+          </div>
+          <div class="bulk-actions">
+            <button type="button" class="btn danger" (click)="promptDeleteSelected()">
+              🗑 Delete Selected ({{selectedIds().size}})
+            </button>
+            <button type="button" class="btn" (click)="clearSelection()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+
       @if(pagedFlags().length){
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
+                <th class="col-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isAllCurrentPageSelected()"
+                    (change)="toggleSelectAll()"
+                    aria-label="Select all on this page" />
+                </th>
                 <th>Employee</th>
                 <th>Date</th>
                 <th>Pattern Flag</th>
                 <th>Severity</th>
                 <th>Logged Hours / Leave</th>
                 <th>One-Sentence Explanation</th>
+                <th class="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               @for(flag of pagedFlags();track flag.id){
-                <tr>
+                <tr [class.selected-row]="isSelected(flag.id)">
+                  <td class="col-check">
+                    <input
+                      type="checkbox"
+                      [checked]="isSelected(flag.id)"
+                      (change)="toggleSelect(flag.id)"
+                      aria-label="Select flag" />
+                  </td>
                   <td>
                     <b>{{flag.employeeName}}</b>
                     <small>{{flag.employeeId}}</small>
@@ -141,6 +173,16 @@
                   <td class="explanation-cell">
                     {{flag.explanation}}
                   </td>
+                  <td class="col-actions">
+                    <button
+                      type="button"
+                      class="btn-delete"
+                      (click)="promptDeleteSingle(flag, $event)"
+                      title="Delete flag"
+                      aria-label="Delete flag">
+                      🗑
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -162,4 +204,13 @@
       }
     </div>
   }
+
+  <app-confirm-modal
+    [isOpen]="confirmModalOpen()"
+    [title]="confirmModalTitle()"
+    [message]="confirmModalMessage()"
+    [confirmText]="'Delete'"
+    [isDanger]="true"
+    (confirmed)="executeDelete()"
+    (cancelled)="closeConfirmModal()" />
 </section>
