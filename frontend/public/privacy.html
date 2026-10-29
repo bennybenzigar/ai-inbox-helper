@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — AI Inbox Helper</title>
+  <meta name="description" content="Privacy Policy for AI Inbox Helper. Learn how we collect, use, and protect your data, including Google API compliance and Limited Use disclosure." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.7;
+      color: #1e293b;
+      background: #f6f8fc;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 3rem;
+    }
+    .badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #0f172a; }
+    .updated { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+    .highlight-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    h2 { font-size: 1.3rem; margin: 2rem 0 0.75rem; color: #1e40af; border-bottom: 2px solid #e0e7ff; padding-bottom: 0.3rem; }
+    p { margin-bottom: 1rem; }
+    ul { margin: 0.5rem 0 1rem 1.5rem; }
+    li { margin-bottom: 0.5rem; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .footer { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
+    .footer a { display: inline-block; padding: 10px 24px; background: #3b82f6; color: #fff; border-radius: 8px; margin: 0 0.5rem; text-decoration: none; }
+    .footer a.secondary { background: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">Legal &amp; Compliance</div>
+    <h1>Privacy Policy — AI Inbox Helper</h1>
+    <p class="updated">Last Updated: October 29, 2026</p>
+
+    <div class="highlight-box">
+      <strong>Google API Services User Data Policy Compliance:</strong><br />
+      AI Inbox Helper's use and transfer to any other app of information received from Google APIs adheres to the
+      <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">
+        Google API Services User Data Policy</a>, including the <strong>Limited Use</strong> requirements.
+    </div>
+
+    <h2>1. Introduction</h2>
+    <p>
+      AI Inbox Helper ("we", "our", or "the application") is a recruitment productivity platform that assists recruiters
+      in categorizing candidate emails, drafting suggested replies, monitoring recruitment pipeline bottlenecks, and
+      analyzing attendance patterns. We are committed to protecting your privacy and maintaining the security of any data
+      you share with us.
+    </p>
+    <p>
+      This Privacy Policy describes what information we collect, how we use it, how we store and protect it, and how
+      you can control your data. By using AI Inbox Helper, you agree to the practices described in this policy.
+    </p>
+
+    <h2>2. Information We Access and Collect</h2>
+    <p>When you choose to connect your Google account or upload data into AI Inbox Helper, we collect and process the following information:</p>
+    <ul>
+      <li>
+        <strong>Google Account Profile &amp; Email:</strong> When you authenticate via Google OAuth 2.0, we access your
+        email address and basic profile information under the <code>openid</code> and <code>email</code> scopes to
+        identify your connected mailbox.
+      </li>
+      <li>
+        <strong>Gmail Messages &amp; Metadata:</strong> Under the
+        <code>https://www.googleapis.com/auth/gmail.readonly</code> scope, we access incoming candidate emails (sender
+        name, sender email, subject, timestamp, body text, and attachment presence) for the sole purpose of displaying
+        candidate inquiries in your inbox and classifying their intent.
+      </li>
+      <li>
+        <strong>Recruiter-Uploaded Timesheets and Pipeline CSVs:</strong> Work hours, leave records, and candidate board
+        statuses uploaded to the Attendance Pattern Checker and Stall Alerter modules. These files are processed
+        client-side and stored in our database for your review.
+      </li>
+    </ul>
+
+    <h2>3. How We Use Your Information</h2>
+    <p>We use your information exclusively to provide and improve the recruitment workflows within the application:</p>
+    <ul>
+      <li><strong>Intent Classification:</strong> Incoming candidate emails are categorized into 6 operational intents
+        (Interview Scheduling, Application Status, Salary &amp; Compensation, Document Requests, Job Details, and
+        Other / Unclear) using Google Gemini AI.</li>
+      <li><strong>AI Response Drafting:</strong> We pass candidate message text to Google Gemini AI
+        (<code>gemini-2.5-flash</code>) to generate concise, professional reply suggestions for your review.</li>
+      <li><strong>Human-in-the-Loop Review:</strong> AI drafts are displayed for human recruiters to review, edit,
+        approve, or reject. <strong>No email is ever sent automatically without explicit recruiter approval.</strong></li>
+      <li><strong>Attendance Analysis:</strong> Uploaded timesheets are analyzed to identify attendance patterns and
+        flag irregularities for recruiter review.</li>
+      <li><strong>Pipeline Monitoring:</strong> Candidate board data is analyzed to detect stalled recruitment stages
+        and alert recruiters to bottlenecks.</li>
+    </ul>
+
+    <h2>4. Google Limited Use Disclosure</h2>
+    <p>In accordance with Google's Limited Use requirements, AI Inbox Helper:</p>
+    <ul>
+      <li><strong>DOES NOT</strong> use Google user data (including email content, metadata, or profile information) to
+        train generalized artificial intelligence (AI) or machine learning (ML) models.</li>
+      <li><strong>DOES NOT</strong> sell, rent, lease, or trade Google user data to data brokers, advertising networks,
+        information resellers, or any third parties.</li>
+      <li><strong>DOES NOT</strong> use or transfer Google user data for serving personalized, retargeted, or
+        interest-based advertisements.</li>
+      <li><strong>DOES NOT</strong> allow humans to read your private email messages unless: (a) you explicitly approve
+        a message in the review interface, (b) you provide explicit written consent for technical troubleshooting, or
+        (c) it is required by applicable law.</li>
+      <li><strong>LIMITS</strong> its use of Google user data to providing and improving the user-facing features
+        described in this policy. All access is proportional to what is necessary to deliver the functionality
+        requested by the user.</li>
+    </ul>
+
+    <h2>5. Third-Party Services</h2>
+    <p>AI Inbox Helper integrates with the following third-party services:</p>
+    <ul>
+      <li><strong>Google OAuth 2.0:</strong> For user authentication and Gmail access authorization.</li>
+      <li><strong>Google Gmail API:</strong> For reading candidate emails from your connected Gmail account (read-only access).</li>
+      <li><strong>Google Gemini AI:</strong> For intent classification and reply draft generation. Email content is sent
+        to Google Gemini's API for processing; Gemini does not store or retain this data beyond the API request lifecycle.</li>
+      <li><strong>Render.com:</strong> For hosting the application frontend and backend. Data is stored in Render-managed
+        PostgreSQL databases with encryption at rest.</li>
+    </ul>
+
+    <h2>6. Data Storage, Security &amp; Retention</h2>
+    <p>
+      All data is encrypted in transit using Transport Layer Security (HTTPS/TLS). Application data is stored securely
+      in a managed PostgreSQL database hosted on Render.com with encryption at rest. Google OAuth refresh tokens are
+      stored in the server's restricted connection metadata store and are never exposed to client-side scripts, logs, or
+      third parties.
+    </p>
+    <p>
+      We retain your data only for as long as you maintain an active connection. When you disconnect your Gmail account
+      or perform a factory reset, all associated data is permanently deleted from our database.
+    </p>
+
+    <h2>7. Data Deletion and Revocation of Access</h2>
+    <p>You have full control over your data at all times:</p>
+    <ul>
+      <li><strong>Disconnect Gmail:</strong> Navigate to the <em>Gmail Connection</em> page within the application and
+        click "Disconnect" at any time. This immediately deletes your stored OAuth tokens from our database and stops
+        all Gmail synchronization.</li>
+      <li><strong>Revoke via Google Account:</strong> You can revoke AI Inbox Helper's access at any time via your
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">
+          Google Account Third-party apps settings</a>.</li>
+      <li><strong>Factory Reset / Data Purge:</strong> Go to <em>Settings</em> &gt; <em>Data Management</em> and select
+        "Factory reset" to permanently and irreversibly delete all messages, drafts, audit logs, timesheets, candidate
+        alerts, and OAuth tokens from our database.</li>
+      <li><strong>Request Data Deletion:</strong> You may also request complete data deletion by emailing us at the
+        contact address below. We will process deletion requests within 7 business days.</li>
+    </ul>
+
+    <h2>8. Children's Privacy</h2>
+    <p>
+      AI Inbox Helper is not intended for use by individuals under the age of 18. We do not knowingly collect personal
+      information from children. If you believe a child has provided us with personal data, please contact us
+      immediately and we will delete it.
+    </p>
+
+    <h2>9. Changes to This Policy</h2>
+    <p>
+      We may update this Privacy Policy from time to time. We will notify users of any material changes by updating
+      the "Last Updated" date at the top of this page. Continued use of the application after changes constitutes
+      acceptance of the revised policy.
+    </p>
+
+    <h2>10. Contact Information</h2>
+    <p>
+      If you have questions regarding this Privacy Policy, wish to request data deletion, or need to report a privacy
+      concern, contact us at:
+    </p>
+    <ul>
+      <li><strong>Developer:</strong> Benny Benzigar</li>
+      <li><strong>Email:</strong> <a href="mailto:bennybenzigar@gmail.com">bennybenzigar@gmail.com</a></li>
+      <li><strong>Application URL:</strong> <a href="https://ai-inbox-frontend.onrender.com">https://ai-inbox-frontend.onrender.com</a></li>
+      <li><strong>GitHub:</strong> <a href="https://github.com/bennybenzigar/ai-inbox-helper">https://github.com/bennybenzigar/ai-inbox-helper</a></li>
+    </ul>
+
+    <div class="footer">
+      <a href="/">← Return to Application</a>
+      <a href="/terms.html" class="secondary">Terms of Service →</a>
+    </div>
+  </div>
+</body>
+</html>
