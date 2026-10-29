@@ -281,6 +281,16 @@ router.delete('/data/clear', async (_req, res, next) => {
   }
 });
 
+router.delete('/data/factory-reset', async (_req, res, next) => {
+  try {
+    await repo.factoryReset();
+    publishEvent('messages-updated', { reset: true });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/drafts', async (req, res, next) => {
   try {
     const status = String(req.query.status ?? 'all');

@@ -475,4 +475,24 @@ export class InboxRepository {
       client.release();
     }
   }
+
+  async factoryReset(): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM review_events');
+      await client.query('DELETE FROM audit_events');
+      await client.query('DELETE FROM drafts');
+      await client.query('DELETE FROM messages');
+      await client.query('DELETE FROM activity');
+      await client.query('DELETE FROM sync_checkpoints');
+      await client.query('DELETE FROM connection_metadata');
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
 }
