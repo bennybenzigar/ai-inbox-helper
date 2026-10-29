@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -43,7 +43,7 @@ export interface StallAnalysis {
   templateUrl: './stall-alerter.html',
   styleUrl: './stall-alerter.scss'
 })
-export class StallAlerterComponent {
+export class StallAlerterComponent implements OnInit {
   readonly Math = Math;
   private api = inject(ApiService);
   private toast = inject(ToastService);
@@ -62,6 +62,27 @@ export class StallAlerterComponent {
   readonly confirmModalTitle = signal('');
   readonly confirmModalMessage = signal('');
   private pendingDeleteIds: string[] = [];
+
+  ngOnInit(): void {
+    this.loadSaved();
+  }
+
+  loadSaved(): void {
+    this.busy.set(true);
+    this.api.getStallAnalysis().subscribe({
+      next: (res) => {
+        this.busy.set(false);
+        if (res?.data) {
+          this.analysis.set(res.data);
+          this.thresholdDays.set(res.data.thresholdDays || 5);
+          this.page.set(1);
+        }
+      },
+      error: () => {
+        this.busy.set(false);
+      }
+    });
+  }
 
   downloadSample(): void {
     this.api.downloadCsvFromUrl(this.sampleCsvUrl, 'hiring_board_sample.csv');
@@ -158,47 +179,63 @@ export class StallAlerterComponent {
 
   executeDelete(): void {
     const data = this.analysis();
-    if (!data || this.pendingDeleteIds.length === 0) {
+    const ids = this.pendingDeleteIds;
+    if (!data || ids.length === 0) {
       this.closeConfirmModal();
       return;
     }
 
-    const toDeleteSet = new Set(this.pendingDeleteIds);
-    const count = toDeleteSet.size;
-    const remainingAlerts = data.alerts.filter((a) => !toDeleteSet.has(a.id));
+    this.busy.set(true);
+    const deleteObs = ids.length === 1
+      ? this.api.deleteStallAlert(ids[0])
+      : this.api.deleteStallAlerts(ids);
 
-    // Re-rank remaining alerts sequentially
-    const reRanked = remainingAlerts.map((a, idx) => ({ ...a, priorityRank: idx + 1 }));
+    deleteObs.subscribe({
+      next: () => {
+        this.busy.set(false);
+        const toDeleteSet = new Set(ids);
+        const count = toDeleteSet.size;
+        const remainingAlerts = data.alerts.filter((a) => !toDeleteSet.has(a.id));
 
-    const newSummary = {
-      criticalCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'critical').length,
-      highCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'high').length,
-      mediumCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'medium').length,
-    };
+        // Re-rank remaining alerts sequentially
+        const reRanked = remainingAlerts.map((a, idx) => ({ ...a, priorityRank: idx + 1 }));
 
-    this.analysis.set({
-      ...data,
-      alerts: reRanked,
-      stalledCount: reRanked.length,
-      summary: newSummary
+        const newSummary = {
+          criticalCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'critical').length,
+          highCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'high').length,
+          mediumCount: reRanked.filter((a) => a.urgency.toLowerCase() === 'medium').length,
+        };
+
+        this.analysis.set({
+          ...data,
+          alerts: reRanked,
+          stalledCount: reRanked.length,
+          summary: newSummary
+        });
+
+        // Remove from selection
+        const nextSelected = new Set(this.selectedIds());
+        for (const id of toDeleteSet) {
+          nextSelected.delete(id);
+        }
+        this.selectedIds.set(nextSelected);
+
+        // Adjust page if current page exceeds maximum
+        const remainingFiltered = this.filteredAlerts().length;
+        const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
+        if (this.page() > maxPage) {
+          this.page.set(maxPage);
+        }
+
+        this.closeConfirmModal();
+        this.toast.success(`Deleted ${count} alert${count > 1 ? 's' : ''} from database.`);
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.closeConfirmModal();
+        this.toast.error(err?.error?.error || 'Failed to delete alert(s) from database.');
+      }
     });
-
-    // Remove from selection
-    const nextSelected = new Set(this.selectedIds());
-    for (const id of toDeleteSet) {
-      nextSelected.delete(id);
-    }
-    this.selectedIds.set(nextSelected);
-
-    // Adjust page if current page exceeds maximum
-    const remainingFiltered = this.filteredAlerts().length;
-    const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
-    if (this.page() > maxPage) {
-      this.page.set(maxPage);
-    }
-
-    this.closeConfirmModal();
-    this.toast.success(`Deleted ${count} stall alert${count > 1 ? 's' : ''}.`);
   }
 
   onFileSelected(event: Event): void {

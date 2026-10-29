@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -41,7 +41,7 @@ export interface AttendanceAnalysis {
   templateUrl: './attendance.html',
   styleUrl: './attendance.scss'
 })
-export class AttendanceComponent {
+export class AttendanceComponent implements OnInit {
   readonly Math = Math;
   private api = inject(ApiService);
   private toast = inject(ToastService);
@@ -59,6 +59,26 @@ export class AttendanceComponent {
   readonly confirmModalTitle = signal('');
   readonly confirmModalMessage = signal('');
   private pendingDeleteIds: string[] = [];
+
+  ngOnInit(): void {
+    this.loadSaved();
+  }
+
+  loadSaved(): void {
+    this.busy.set(true);
+    this.api.getAttendanceAnalysis().subscribe({
+      next: (res) => {
+        this.busy.set(false);
+        if (res?.data) {
+          this.analysis.set(res.data);
+          this.page.set(1);
+        }
+      },
+      error: () => {
+        this.busy.set(false);
+      }
+    });
+  }
 
   downloadSample(): void {
     this.api.downloadCsvFromUrl(this.sampleCsvUrl, 'attendance_sample.csv');
@@ -145,47 +165,63 @@ export class AttendanceComponent {
 
   executeDelete(): void {
     const data = this.analysis();
-    if (!data || this.pendingDeleteIds.length === 0) {
+    const ids = this.pendingDeleteIds;
+    if (!data || ids.length === 0) {
       this.closeConfirmModal();
       return;
     }
 
-    const toDeleteSet = new Set(this.pendingDeleteIds);
-    const count = toDeleteSet.size;
-    const remainingFlags = data.flags.filter((f) => !toDeleteSet.has(f.id));
+    this.busy.set(true);
+    const deleteObs = ids.length === 1
+      ? this.api.deleteAttendanceFlag(ids[0])
+      : this.api.deleteAttendanceFlags(ids);
 
-    const newSummary = {
-      overtimeFlags: remainingFlags.filter((f) => f.flagType === 'Overtime').length,
-      missingHourFlags: remainingFlags.filter((f) => f.flagType === 'Missing Hours').length,
-      consecutiveLeaveFlags: remainingFlags.filter((f) => f.flagType === 'Consecutive Leave').length,
-      weekendWorkFlags: remainingFlags.filter((f) => f.flagType === 'Weekend Work').length,
-    };
-    const uniqueEmployees = new Set(remainingFlags.map((f) => f.employeeId)).size;
+    deleteObs.subscribe({
+      next: () => {
+        this.busy.set(false);
+        const toDeleteSet = new Set(ids);
+        const count = toDeleteSet.size;
+        const remainingFlags = data.flags.filter((f) => !toDeleteSet.has(f.id));
 
-    this.analysis.set({
-      ...data,
-      flags: remainingFlags,
-      flaggedCount: remainingFlags.length,
-      employeesAnalyzed: uniqueEmployees || (remainingFlags.length === 0 ? 0 : data.employeesAnalyzed),
-      summary: newSummary
+        const newSummary = {
+          overtimeFlags: remainingFlags.filter((f) => f.flagType === 'Overtime').length,
+          missingHourFlags: remainingFlags.filter((f) => f.flagType === 'Missing Hours').length,
+          consecutiveLeaveFlags: remainingFlags.filter((f) => f.flagType === 'Consecutive Leave').length,
+          weekendWorkFlags: remainingFlags.filter((f) => f.flagType === 'Weekend Work').length,
+        };
+        const uniqueEmployees = new Set(remainingFlags.map((f) => f.employeeId)).size;
+
+        this.analysis.set({
+          ...data,
+          flags: remainingFlags,
+          flaggedCount: remainingFlags.length,
+          employeesAnalyzed: uniqueEmployees || (remainingFlags.length === 0 ? 0 : data.employeesAnalyzed),
+          summary: newSummary
+        });
+
+        // Remove from selection
+        const nextSelected = new Set(this.selectedIds());
+        for (const id of toDeleteSet) {
+          nextSelected.delete(id);
+        }
+        this.selectedIds.set(nextSelected);
+
+        // Adjust page if current page exceeds maximum
+        const remainingFiltered = this.filteredFlags().length;
+        const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
+        if (this.page() > maxPage) {
+          this.page.set(maxPage);
+        }
+
+        this.closeConfirmModal();
+        this.toast.success(`Deleted ${count} attendance flag${count > 1 ? 's' : ''} from database.`);
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.closeConfirmModal();
+        this.toast.error(err?.error?.error || 'Failed to delete attendance flag(s) from database.');
+      }
     });
-
-    // Remove from selection
-    const nextSelected = new Set(this.selectedIds());
-    for (const id of toDeleteSet) {
-      nextSelected.delete(id);
-    }
-    this.selectedIds.set(nextSelected);
-
-    // Adjust page if current page exceeds maximum
-    const remainingFiltered = this.filteredFlags().length;
-    const maxPage = Math.max(1, Math.ceil(remainingFiltered / this.pager.pageSize()));
-    if (this.page() > maxPage) {
-      this.page.set(maxPage);
-    }
-
-    this.closeConfirmModal();
-    this.toast.success(`Deleted ${count} attendance flag${count > 1 ? 's' : ''}.`);
   }
 
   onFileSelected(event: Event): void {

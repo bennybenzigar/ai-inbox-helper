@@ -467,6 +467,10 @@ export class InboxRepository {
       await client.query('DELETE FROM drafts');
       await client.query('DELETE FROM messages');
       await client.query('DELETE FROM activity');
+      await client.query('DELETE FROM attendance_flags');
+      await client.query('DELETE FROM attendance_meta');
+      await client.query('DELETE FROM stall_alerts');
+      await client.query('DELETE FROM stall_meta');
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');
@@ -487,6 +491,10 @@ export class InboxRepository {
       await client.query('DELETE FROM activity');
       await client.query('DELETE FROM sync_checkpoints');
       await client.query('DELETE FROM connection_metadata');
+      await client.query('DELETE FROM attendance_flags');
+      await client.query('DELETE FROM attendance_meta');
+      await client.query('DELETE FROM stall_alerts');
+      await client.query('DELETE FROM stall_meta');
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');

@@ -103,6 +103,47 @@ export async function initDatabase(): Promise<void> {
         value TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS attendance_flags (
+        id TEXT PRIMARY KEY,
+        employee_id TEXT NOT NULL,
+        employee_name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        hours_worked DOUBLE PRECISION NOT NULL,
+        leave_type TEXT NOT NULL,
+        flag_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        explanation TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS attendance_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS stall_alerts (
+        id TEXT PRIMARY KEY,
+        candidate_id TEXT NOT NULL,
+        candidate_name TEXT NOT NULL,
+        candidate_email TEXT NOT NULL,
+        role TEXT NOT NULL,
+        stage TEXT NOT NULL,
+        days_in_stage INTEGER NOT NULL,
+        last_activity_date TEXT NOT NULL,
+        assigned_recruiter TEXT NOT NULL,
+        urgency TEXT NOT NULL,
+        priority_rank INTEGER NOT NULL,
+        recommended_action TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS stall_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `);
 
     // Migrate any existing REAL messages from SQLite if PostgreSQL tables are empty

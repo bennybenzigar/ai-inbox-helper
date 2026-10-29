@@ -1,3 +1,5 @@
+import { pool, query } from '../database/database';
+
 export interface CandidateBoardRow {
   candidateId: string;
   candidateName: string;
@@ -183,4 +185,104 @@ export function analyzeStalledCandidates(
 
 export function generateSampleHiringBoardCSV(): string {
   return `candidate_id,candidate_name,candidate_email,role,stage,days_in_stage,last_activity_date,assigned_recruiter`;
+}
+
+export async function saveStallAnalysis(result: StallAnalysisResult): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM stall_alerts');
+    await client.query('DELETE FROM stall_meta');
+
+    const now = new Date().toISOString();
+    await client.query(
+      `INSERT INTO stall_meta (key, value, updated_at) VALUES 
+       ('threshold_days', $1, $3),
+       ('total_candidates', $2, $3)`,
+      [String(result.thresholdDays), String(result.totalCandidates), now]
+    );
+
+    for (const a of result.alerts) {
+      await client.query(
+        `INSERT INTO stall_alerts 
+         (id, candidate_id, candidate_name, candidate_email, role, stage, days_in_stage, last_activity_date, assigned_recruiter, urgency, priority_rank, recommended_action, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        [
+          a.id,
+          a.candidateId,
+          a.candidateName,
+          a.candidateEmail,
+          a.role,
+          a.stage,
+          a.daysInStage,
+          a.lastActivityDate,
+          a.assignedRecruiter,
+          a.urgency,
+          a.priorityRank,
+          a.recommendedAction,
+          now
+        ]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getSavedStallAnalysis(): Promise<StallAnalysisResult | null> {
+  const alerts = await query<any>(
+    'SELECT id, candidate_id as "candidateId", candidate_name as "candidateName", candidate_email as "candidateEmail", role, stage, days_in_stage as "daysInStage", last_activity_date as "lastActivityDate", assigned_recruiter as "assignedRecruiter", urgency, priority_rank as "priorityRank", recommended_action as "recommendedAction" FROM stall_alerts ORDER BY priority_rank ASC'
+  );
+  const metaRows = await query<{ key: string; value: string }>('SELECT key, value FROM stall_meta');
+  if (alerts.length === 0 && metaRows.length === 0) {
+    return null;
+  }
+  const metaMap = new Map(metaRows.map((m) => [m.key, m.value]));
+  const thresholdDays = parseInt(metaMap.get('threshold_days') || '5', 10) || 5;
+  const totalCandidates = parseInt(metaMap.get('total_candidates') || '0', 10) || alerts.length;
+
+  return {
+    totalCandidates,
+    stalledCount: alerts.length,
+    thresholdDays,
+    alerts: alerts.map((a: any) => ({
+      id: a.id,
+      candidateId: a.candidateId,
+      candidateName: a.candidateName,
+      candidateEmail: a.candidateEmail,
+      role: a.role,
+      stage: a.stage,
+      daysInStage: Number(a.daysInStage),
+      lastActivityDate: a.lastActivityDate,
+      assignedRecruiter: a.assignedRecruiter,
+      urgency: a.urgency,
+      priorityRank: Number(a.priorityRank),
+      recommendedAction: a.recommendedAction
+    })),
+    summary: {
+      criticalCount: alerts.filter((a: any) => a.urgency === 'Critical').length,
+      highCount: alerts.filter((a: any) => a.urgency === 'High').length,
+      mediumCount: alerts.filter((a: any) => a.urgency === 'Medium').length
+    }
+  };
+}
+
+export async function deleteStallAlert(id: string): Promise<boolean> {
+  const res = await query('DELETE FROM stall_alerts WHERE id = $1 RETURNING id', [id]);
+  return res.length > 0;
+}
+
+export async function deleteStallAlerts(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const res = await query('DELETE FROM stall_alerts WHERE id = ANY($1) RETURNING id', [ids]);
+  return res.length;
+}
+
+export async function clearStallData(): Promise<void> {
+  await query('DELETE FROM stall_alerts');
+  await query('DELETE FROM stall_meta');
 }

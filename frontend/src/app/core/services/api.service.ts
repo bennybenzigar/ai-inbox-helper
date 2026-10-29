@@ -154,6 +154,38 @@ export class ApiService {
       };
     }>(`${this.base}/api/tools/attendance/analyze`, { csv });
   }
+  getAttendanceAnalysis() {
+    return this.http.get<{
+      data: {
+        totalRecords: number;
+        flaggedCount: number;
+        employeesAnalyzed: number;
+        flags: Array<{
+          id: string;
+          employeeId: string;
+          employeeName: string;
+          date: string;
+          hoursWorked: number;
+          leaveType: string;
+          flagType: string;
+          severity: string;
+          explanation: string;
+        }>;
+        summary: {
+          overtimeFlags: number;
+          missingHourFlags: number;
+          consecutiveLeaveFlags: number;
+          weekendWorkFlags: number;
+        };
+      } | null;
+    }>(`${this.base}/api/tools/attendance`);
+  }
+  deleteAttendanceFlag(id: string) {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/api/tools/attendance/flags/${id}`);
+  }
+  deleteAttendanceFlags(ids: string[]) {
+    return this.http.post<{ ok: boolean; deleted: number }>(`${this.base}/api/tools/attendance/flags/bulk-delete`, { ids });
+  }
   analyzeStallAlerter(csv?: string, thresholdDays = 5) {
     return this.http.post<{
       totalCandidates: number;
@@ -179,6 +211,40 @@ export class ApiService {
         mediumCount: number;
       };
     }>(`${this.base}/api/tools/stall-alerter/analyze`, { csv, thresholdDays });
+  }
+  getStallAnalysis() {
+    return this.http.get<{
+      data: {
+        totalCandidates: number;
+        stalledCount: number;
+        thresholdDays: number;
+        alerts: Array<{
+          id: string;
+          candidateId: string;
+          candidateName: string;
+          candidateEmail: string;
+          role: string;
+          stage: string;
+          daysInStage: number;
+          lastActivityDate: string;
+          assignedRecruiter: string;
+          urgency: string;
+          priorityRank: number;
+          recommendedAction: string;
+        }>;
+        summary: {
+          criticalCount: number;
+          highCount: number;
+          mediumCount: number;
+        };
+      } | null;
+    }>(`${this.base}/api/tools/stall-alerter`);
+  }
+  deleteStallAlert(id: string) {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/api/tools/stall-alerter/alerts/${id}`);
+  }
+  deleteStallAlerts(ids: string[]) {
+    return this.http.post<{ ok: boolean; deleted: number }>(`${this.base}/api/tools/stall-alerter/alerts/bulk-delete`, { ids });
   }
 
   getMessagesExportUrl(filters: { q?: string; intent?: string; status?: string; page?: number; limit?: number } = {}): string {

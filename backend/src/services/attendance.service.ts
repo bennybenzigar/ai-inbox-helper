@@ -1,3 +1,5 @@
+import { pool, query } from '../database/database';
+
 export interface AttendanceRecord {
   employeeId: string;
   employeeName: string;
@@ -213,4 +215,101 @@ export function analyzeAttendance(records: AttendanceRecord[]): AttendanceAnalys
 
 export function generateSampleAttendanceCSV(): string {
   return `employee_id,employee_name,date,hours_worked,leave_type`;
+}
+
+export async function saveAttendanceAnalysis(result: AttendanceAnalysisResult): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM attendance_flags');
+    await client.query('DELETE FROM attendance_meta');
+
+    const now = new Date().toISOString();
+    await client.query(
+      `INSERT INTO attendance_meta (key, value, updated_at) VALUES 
+       ('total_records', $1, $3),
+       ('employees_analyzed', $2, $3)`,
+      [String(result.totalRecords), String(result.employeesAnalyzed), now]
+    );
+
+    for (const flag of result.flags) {
+      await client.query(
+        `INSERT INTO attendance_flags 
+         (id, employee_id, employee_name, date, hours_worked, leave_type, flag_type, severity, explanation, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          flag.id,
+          flag.employeeId,
+          flag.employeeName,
+          flag.date,
+          flag.hoursWorked,
+          flag.leaveType,
+          flag.flagType,
+          flag.severity,
+          flag.explanation,
+          now
+        ]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getSavedAttendanceAnalysis(): Promise<AttendanceAnalysisResult | null> {
+  const flags = await query<any>(
+    'SELECT id, employee_id as "employeeId", employee_name as "employeeName", date, hours_worked as "hoursWorked", leave_type as "leaveType", flag_type as "flagType", severity, explanation FROM attendance_flags ORDER BY date DESC, employee_name ASC'
+  );
+  const metaRows = await query<{ key: string; value: string }>('SELECT key, value FROM attendance_meta');
+  if (flags.length === 0 && metaRows.length === 0) {
+    return null;
+  }
+  const metaMap = new Map(metaRows.map((m) => [m.key, m.value]));
+  const totalRecords = parseInt(metaMap.get('total_records') || '0', 10) || flags.length;
+  const employeesAnalyzed =
+    parseInt(metaMap.get('employees_analyzed') || '0', 10) ||
+    new Set(flags.map((f: any) => f.employeeId)).size;
+
+  return {
+    totalRecords,
+    flaggedCount: flags.length,
+    employeesAnalyzed,
+    flags: flags.map((f: any) => ({
+      id: f.id,
+      employeeId: f.employeeId,
+      employeeName: f.employeeName,
+      date: f.date,
+      hoursWorked: Number(f.hoursWorked),
+      leaveType: f.leaveType,
+      flagType: f.flagType,
+      severity: f.severity,
+      explanation: f.explanation
+    })),
+    summary: {
+      overtimeFlags: flags.filter((f: any) => f.flagType === 'Overtime').length,
+      missingHourFlags: flags.filter((f: any) => f.flagType === 'Missing Hours').length,
+      consecutiveLeaveFlags: flags.filter((f: any) => f.flagType === 'Consecutive Leave').length,
+      weekendWorkFlags: flags.filter((f: any) => f.flagType === 'Weekend Work').length
+    }
+  };
+}
+
+export async function deleteAttendanceFlag(id: string): Promise<boolean> {
+  const res = await query('DELETE FROM attendance_flags WHERE id = $1 RETURNING id', [id]);
+  return res.length > 0;
+}
+
+export async function deleteAttendanceFlags(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const res = await query('DELETE FROM attendance_flags WHERE id = ANY($1) RETURNING id', [ids]);
+  return res.length;
+}
+
+export async function clearAttendanceData(): Promise<void> {
+  await query('DELETE FROM attendance_flags');
+  await query('DELETE FROM attendance_meta');
 }

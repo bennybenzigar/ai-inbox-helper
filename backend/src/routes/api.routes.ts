@@ -21,12 +21,20 @@ import {
 import {
   analyzeAttendance,
   parseAttendanceCSV,
-  generateSampleAttendanceCSV
+  generateSampleAttendanceCSV,
+  saveAttendanceAnalysis,
+  getSavedAttendanceAnalysis,
+  deleteAttendanceFlag,
+  deleteAttendanceFlags
 } from '../services/attendance.service';
 import {
   analyzeStalledCandidates,
   parseHiringBoardCSV,
-  generateSampleHiringBoardCSV
+  generateSampleHiringBoardCSV,
+  saveStallAnalysis,
+  getSavedStallAnalysis,
+  deleteStallAlert,
+  deleteStallAlerts
 } from '../services/stall-alerter.service';
 
 const router = Router();
@@ -413,19 +421,52 @@ router.post('/drafts/:id/send', async (req, res, next) => {
   }
 });
 
-router.post('/tools/attendance/analyze', (req, res) => {
-  const csv = req.body?.csv;
-  if (typeof csv !== 'string' || !csv.trim()) {
-    return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+router.post('/tools/attendance/analyze', async (req, res, next) => {
+  try {
+    const csv = req.body?.csv;
+    if (typeof csv !== 'string' || !csv.trim()) {
+      return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+    }
+    const records = parseAttendanceCSV(csv);
+    if (records.length === 0) {
+      return res.status(400).json({
+        error: 'CSV contains no valid attendance data. Empty files, title-only files, or blank rows are not allowed.'
+      });
+    }
+    const result = analyzeAttendance(records);
+    await saveAttendanceAnalysis(result);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
-  const records = parseAttendanceCSV(csv);
-  if (records.length === 0) {
-    return res.status(400).json({
-      error: 'CSV contains no valid attendance data. Empty files, title-only files, or blank rows are not allowed.'
-    });
+});
+
+router.get('/tools/attendance', async (_req, res, next) => {
+  try {
+    const data = await getSavedAttendanceAnalysis();
+    res.json({ data });
+  } catch (err) {
+    next(err);
   }
-  const result = analyzeAttendance(records);
-  res.json(result);
+});
+
+router.delete('/tools/attendance/flags/:id', async (req, res, next) => {
+  try {
+    const ok = await deleteAttendanceFlag(req.params.id);
+    res.json({ ok });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/tools/attendance/flags/bulk-delete', async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const count = await deleteAttendanceFlags(ids);
+    res.json({ ok: true, deleted: count });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/tools/attendance/sample', (_req, res) => {
@@ -435,20 +476,53 @@ router.get('/tools/attendance/sample', (_req, res) => {
   res.send(generateSampleAttendanceCSV());
 });
 
-router.post('/tools/stall-alerter/analyze', (req, res) => {
-  const csv = req.body?.csv;
-  if (typeof csv !== 'string' || !csv.trim()) {
-    return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+router.post('/tools/stall-alerter/analyze', async (req, res, next) => {
+  try {
+    const csv = req.body?.csv;
+    if (typeof csv !== 'string' || !csv.trim()) {
+      return res.status(400).json({ error: 'Please provide CSV content in the request body ({ "csv": "..." }).' });
+    }
+    const thresholdDays = parseInt(req.body?.thresholdDays, 10) || 5;
+    const rows = parseHiringBoardCSV(csv);
+    if (rows.length === 0) {
+      return res.status(400).json({
+        error: 'CSV contains no valid candidate data. Empty files, title-only files, or blank rows are not allowed.'
+      });
+    }
+    const result = analyzeStalledCandidates(rows, thresholdDays);
+    await saveStallAnalysis(result);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
-  const thresholdDays = parseInt(req.body?.thresholdDays, 10) || 5;
-  const rows = parseHiringBoardCSV(csv);
-  if (rows.length === 0) {
-    return res.status(400).json({
-      error: 'CSV contains no valid candidate data. Empty files, title-only files, or blank rows are not allowed.'
-    });
+});
+
+router.get('/tools/stall-alerter', async (_req, res, next) => {
+  try {
+    const data = await getSavedStallAnalysis();
+    res.json({ data });
+  } catch (err) {
+    next(err);
   }
-  const result = analyzeStalledCandidates(rows, thresholdDays);
-  res.json(result);
+});
+
+router.delete('/tools/stall-alerter/alerts/:id', async (req, res, next) => {
+  try {
+    const ok = await deleteStallAlert(req.params.id);
+    res.json({ ok });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/tools/stall-alerter/alerts/bulk-delete', async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const count = await deleteStallAlerts(ids);
+    res.json({ ok: true, deleted: count });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/tools/stall-alerter/sample', (_req, res) => {
