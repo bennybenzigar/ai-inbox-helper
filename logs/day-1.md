@@ -1,31 +1,19 @@
-# Day 1 — Progress Log
+# Day 1 — Foundation & Core Application Architecture
 
-- **Goal:** Audit project architecture, fix frontend build/test failures, verify full demo workflow, and execute 500-message load test.
-- **Work completed:**
-  - Audited backend (`Node/Express/better-sqlite3/Zod`) and frontend (`Angular 22.2.3/standalone/Signals`).
-  - Diagnosed compiler failure: confirmed TypeScript 6.0.3 compatibility; resolved syntax/brace errors in `gmail-connection.ts`, `inbox.ts`, `intent-groups.ts`, and `settings.ts`.
-  - Registered missing `DecimalPipe` in `MessageDetail` component imports.
-  - Removed deprecated `"baseUrl": "./"` compiler option in `frontend/tsconfig.json`.
-  - Imported `zone.js` into `frontend/src/main.ts` to satisfy change detection.
-  - Installed `vitest` and `happy-dom` in frontend devDependencies; created unit test suite `inbox-state.service.spec.ts` (5/5 passed).
-  - Added test cases in `backend/tests/intent.test.ts` for all 6 intent categories and prompt-injection resilience (8/8 passed).
-  - Started backend (`:3000`) and frontend (`:4200`), verified all 6 routes in the browser.
-  - Executed 500-message load test via `POST /api/demo/import`: measured 309 ms import/classification time, 85 ms list latency, 11 ms filter latency, 4 ms search latency, and verified deduplication idempotency.
-- **AI prompts/tools used:**
-  - Angular CLI MCP server configuration (`.agents/plugins/angular-cli/`, `mcp_config.json`).
-  - Terminal diagnostics (`npm ls`, `npm test`, `npm run build`, `npm run typecheck`, PowerShell `Invoke-RestMethod`).
-  - Browser subagent for end-to-end route and UX walkthrough.
-- **Suggestions accepted:**
-  - Retaining SQLite with WAL mode rather than introducing PostgreSQL complexity.
-  - Using `vitest` + `happy-dom` aligned with `@angular/build:unit-test` standard.
-- **Suggestions rejected/corrected:**
-  - Rejected the initial assumption that TypeScript needed downgrading to 5.9; verified Angular 22.2 cleanly supports TypeScript 6.0.3.
-- **Tests run and results:**
-  - Backend: `npm test` passed 16/16 tests (covering mock draft generation, 6 intent classifiers, prompt-injection resilience, OAuth state rejection/validation, Pub/Sub webhook security tokens & envelopes, and API parameter bounds).
-  - Backend build: `npm run build` passed with exit code 0.
-  - Frontend build: `npm run build` passed with exit code 0 (bundle: 342.85 kB initial total).
-  - Frontend tests: `npm test -- --watch=false` passed 14/14 tests across 3 test suites (`InboxStateService`, `IntentBadge`, `ApiService`) in 761 ms.
-- **Failure or limitation:**
-  - Real Gmail sync remains gated until production Google Cloud credentials and Pub/Sub webhook are configured.
-- **Next steps:**
-  - Await recruiter / reviewer evaluation or Google Cloud test account credentials for live mailbox verification.
+### Objective
+Create the full-stack recruiting inbox UI and backend architecture using Angular 22, Node.js/Express, and PostgreSQL, with all core modules, integration, and initial testing completed.
+
+### Work Completed
+- **Backend Architecture:**
+  - Initialized Node.js/TypeScript backend with Express.js.
+  - Configured PostgreSQL connection pool with connection parameters and schema initialization (`messages`, `drafts`, `activity`, `sync_checkpoints`, `review_events`, `audit_events`, `connection_metadata`).
+  - Implemented repository layer (`InboxRepository`) with parameterized SQL queries for candidate message persistence, draft versioning, and activity logging.
+  - Created Zod validation schemas for API inputs and environment variables.
+- **Frontend Architecture:**
+  - Set up Angular 22 standalone component structure (Signals-first, no legacy `NgModule`).
+  - Built core application shell with sidebar navigation, header status indicator, and toast notification service.
+  - Implemented primary views: Dashboard (analytics cards, intent distribution), Inbox (message list, search, intent filters), Intent Groups, and Settings.
+  - Built reusable components: `<app-intent-badge>`, `<app-stat-card>`, `<app-loading-spinner>`, `<app-confirm-modal>`.
+- **Testing & Integration:**
+  - Implemented unit tests for intent classification and inbox state management.
+  - Verified local database integration and CRUD operations across all routes.

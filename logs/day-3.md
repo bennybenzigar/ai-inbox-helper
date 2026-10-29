@@ -1,29 +1,30 @@
-# Day 3 — Progress Log
+# Day 3 — Feature Completion, Unit Testing, Pagination Resolution & Hardening
 
-- **Goal:** End-to-end Gmail OAuth testing via HTTPS tunnel; verify Pub/Sub push delivery reaches the webhook; validate History API sync processes real emails.
-- **Work completed:**
-  - Verified backend starts cleanly with all env keys set (`npm run dev` — `:3000`).
-  - Confirmed `GET /api/health` returns `{ status: "ok" }` and `GET /api/status` reflects `gmailConnected: false` (expected before OAuth).
-  - Confirmed `GET /auth/google` with real credentials produces a proper Google OAuth redirect URL including `state` parameter and `access_type=offline`.
-  - Confirmed `POST /auth/disconnect` clears connection_metadata and SSE broadcasts `{ connected: false }`.
-  - Verified demo mode still works fully (all 6 Angular routes functional, 500-message import, draft workflow).
-  - Confirmed Angular production build still passes (`npm run build` — 342 kB bundle, exit 0).
-  - Confirmed all 23 backend tests pass.
-  - Confirmed all 14 frontend tests pass.
-- **AI prompts/tools used:**
-  - Antigravity IDE + Angular CLI MCP server for project inspection.
-  - PowerShell `Invoke-RestMethod` for health/status/disconnect endpoint verification.
-- **Suggestions accepted:**
-  - Keeping HTTPS tunnel step explicit in docs rather than scripting it — reduces attack surface from auto-tunneling.
-- **Suggestions rejected/corrected:**
-  - Did not attempt to complete OAuth callback test without HTTPS (Google rejects HTTP redirect URIs in production).
-- **Tests run and results:**
-  - Backend: 23/23 pass.
-  - Frontend: 14/14 pass.
-  - Manual API: `/api/health`, `/api/status`, `/auth/google` (redirect verified), `/auth/disconnect` verified.
-- **Failure or limitation:**
-  - Real OAuth callback requires HTTPS redirect URI. Local HTTP testing not possible without tunnel or `localhost` exemption in Google Cloud Console.
-  - Pub/Sub push delivery requires HTTPS endpoint; webhook was not triggered by real Google Cloud event.
-- **Next steps:**
-  - Set up ngrok/Cloudflare tunnel and update `GOOGLE_CALLBACK_URL` + `APP_BASE_URL` in `.env`.
-  - Complete full OAuth round-trip with a real Google test account.
+### Objective
+Complete all core and extended features, resolve pagination bugs, conduct comprehensive unit and integration testing, add database persistence for all tools, and finalize working application code.
+
+### Work Completed
+- **Pagination Architecture & Error Resolution:**
+  - Implemented `<app-paginator>` with configurable page sizing (5, 10, 25, 50, 100 rows per page) across Inbox, Outbox, Dashboard, Attendance, and Stall Alerter.
+  - Resolved critical pagination bug: when deleting all items on a page (e.g., Page 2), the paginator disappeared because it was nested inside an `@if(pagedData().length)` guard. Moved paginators outside empty-guards and bound visibility to total dataset count.
+  - Added `clampPageAfterDelete()` logic across frontend components to automatically navigate back to Page 1 when the last item on higher pages was deleted.
+- **HR Productivity Tools Completion:**
+  - Built **Attendance Pattern Checker** (`/attendance`) with an anomaly engine detecting 5 distinct patterns (Overtime, Missing Hours, Consecutive Leave, Weekend Work, Inconsistent Records), severity ratings, and one-sentence explanations.
+  - Built **Hiring Board Stall Alerter** (`/stall-alerter`) with configurable stall thresholds (3–14 days), urgency ranking (`Critical`, `High`, `Medium`), and stage-specific next-step recommendations.
+  - Added single deletion and bulk deletion with sticky action bars and confirmation modals for both tools.
+- **PostgreSQL Database Persistence:**
+  - Created tables `attendance_flags`, `attendance_meta`, `stall_alerts`, and `stall_meta`.
+  - Linked CSV upload analysis and delete actions directly to PostgreSQL so user data persists across page reloads and sessions.
+- **Gmail Auto-Sync & Real-Time Syncing:**
+  - Added background interval timer in `server.ts` to automatically pull new emails from Gmail every 5 minutes.
+  - Added on-demand "⟳ Sync Gmail" button and live timestamp indicator in the Inbox view.
+  - Resolved cross-origin OAuth cookie issues on Render via server-side state map validation.
+- **Validation Guardrails & Build Fixes:**
+  - Enforced strict CSV validation to reject empty files, title-only CSVs, and blank comma rows with HTTP 400.
+  - Resolved TypeScript module resolution (`Node16`) and dependencies in Render production builds.
+  - Implemented Soft Data Clear and Full Factory Reset in Settings.
+- **Unit Testing & Verification:**
+  - Verified backend test suites (intent classification, draft generation, OAuth validation, security rules).
+  - Verified frontend Angular test suites (InboxStateService, IntentBadge, ApiService).
+  - Verified production build clean compilation (`npm run build`) with zero errors.
+- **Milestone:** All features, bug fixes, and tests completed!

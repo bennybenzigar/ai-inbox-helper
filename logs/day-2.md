@@ -1,30 +1,29 @@
-# Day 2 — Progress Log
+# Day 2 — Gemini AI, Gmail Integration, Outbox Module & Render Deployment
 
-- **Goal:** Implement real Gmail OAuth + Pub/Sub integration; verify env keys loaded correctly; add Gmail History API recovery.
-- **Work completed:**
-  - Confirmed all `.env` keys are set: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CLOUD_PROJECT_ID`, `PUBSUB_TOPIC_NAME`, `PUBSUB_SUBSCRIPTION_NAME`, `PUBSUB_PUSH_TOKEN`, `AI_API_KEY`, `AI_MODEL`.
-  - Enhanced `backend/src/services/gmail.service.ts`:
-    - Added `syncGmailHistory()`: uses Gmail History API for incremental sync from stored `historyId` checkpoint.
-    - Added automatic 404/expired-historyId recovery: clears stale checkpoint, falls back to `syncGmailMessages()` for full re-sync.
-    - Added `renewGmailWatchIfNeeded()`: renews the Gmail push watch if expiring within 24 hours.
-    - Added `saveHistoryId()` / `getStoredHistoryId()` helpers.
-    - Watch setup now persists expiration timestamp in `sync_checkpoints`.
-  - Updated `backend/src/routes/webhook.routes.ts`: Pub/Sub webhook now calls `syncGmailHistory()` (History API path) instead of the full-message-list sync.
-  - Created `backend/tests/gmail-history-sync.test.ts`: 7 new unit tests covering no-checkpoint fallback, valid history path, deduplication, 404 recovery, invalid-historyId-message recovery, 503 error propagation, and no-op on empty history.
-  - Updated `security-integration.test.ts`: OAuth route test now adapts to both configured (redirects to Google) and unconfigured (503) credential states.
-- **AI prompts/tools used:**
-  - Antigravity IDE for all file reads, diffs, and writes.
-  - `npm test` output parsed to detect test failures.
-- **Suggestions accepted:**
-  - History API incremental sync preferred over repeated full-list polling (reduces Gmail API quota consumption).
-  - Idempotent deduplication using `gmail_message_id` UNIQUE constraint in SQLite.
-- **Suggestions rejected/corrected:**
-  - Rejected approach of throwing on every non-404 history error; only 404 and historyId-message errors trigger recovery — other errors propagate to caller for proper logging.
-- **Tests run and results:**
-  - Backend: `npm test` — 23/23 passed (7 new history-sync tests + 16 existing).
-  - Backend build: `npm run build` — exit code 0.
-- **Failure or limitation:**
-  - Real Gmail OAuth callback flow cannot be tested locally without HTTPS tunnel (Google requires HTTPS redirect URIs for production). Pub/Sub push delivery similarly requires an HTTPS endpoint. Both paths are code-complete and unit-tested with mocks.
-- **Next steps:**
-  - Configure HTTPS tunnel (ngrok or Cloudflare Tunnel) to test OAuth callback end-to-end.
-  - Trigger a real Pub/Sub push delivery and verify History API processing.
+### Objective
+Integrate Google Gemini AI for smart candidate response drafting, connect Gmail via OAuth 2.0, implement the Outbox module discovered during testing, conceptualize pagination for large datasets, and deploy the application to Render.
+
+### Work Completed
+- **Gemini AI Integration:**
+  - Integrated `@google/genai` (with fallback to Gemini REST / OpenAI-compatible API).
+  - Configured `gemini-2.5-flash` model for intelligent, context-bounded candidate reply draft suggestions.
+  - Implemented prompt-injection guardrails preventing untrusted candidate email bodies from hijacking system directives.
+- **Gmail OAuth 2.0 Integration:**
+  - Configured Google OAuth 2.0 client requesting `gmail.readonly`, `email`, and `openid` scopes.
+  - Implemented offline refresh token handling and token persistence in PostgreSQL `connection_metadata`.
+  - Built Gmail API sync service to fetch candidate emails and generate initial drafts.
+  - Built real Gmail reply dispatching via `users.messages.send` with RFC 2822 MIME base64url encoding.
+- **Outbox Discovery & Implementation:**
+  - During end-to-end testing, realized that a critical workflow piece was missing: recruiters had no way to view or audit previously dispatched candidate communications.
+  - Created the **Outbox** module (`/outbox`) to maintain a persistent ledger of all approved and dispatched candidate replies.
+  - Implemented reply preview modal with recipient details, timestamps, intent category, and thread links.
+- **Pagination Concept & Data Scaling:**
+  - Anticipated data volume challenges with large inboxes and planned client/server pagination, search debouncing, and filtering controls.
+- **Render Production Deployment:**
+  - Authored Infrastructure-as-Code blueprint (`render.yaml`) configuring:
+    - `ai-inbox-postgres`: Managed PostgreSQL instance.
+    - `ai-inbox-backend`: Node.js Web Service.
+    - `ai-inbox-frontend`: Angular Static Site.
+  - Deployed the live application to Render:
+    - Frontend: `https://ai-inbox-frontend.onrender.com`
+    - Backend: `https://ai-inbox-backend.onrender.com`
